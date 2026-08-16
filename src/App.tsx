@@ -5,6 +5,7 @@ import { CopticKeyboard } from './components/CopticKeyboard';
 import { SearchResults } from './components/SearchResults';
 import { EntryDetailModal } from './components/EntryDetailModal';
 import { TermNetworkView } from './components/TermNetworkView';
+import { MorphologyAnalyzer } from './components/MorphologyAnalyzer';
 import { HowToModal } from './components/HowToModal';
 import { AboutModal } from './components/AboutModal';
 import { SearchFilters, DictionaryEntry, DatabaseStats } from './types/dictionary';
@@ -129,6 +130,14 @@ export const App: React.FC = () => {
             hasResults={entries.length > 0}
           />
 
+          {/* Morphological Grammar Dissector for polymorphemic queries */}
+          {filters.query && (
+            <MorphologyAnalyzer
+              query={filters.query}
+              onSearchStem={handleSearchWordFromOther}
+            />
+          )}
+
           {showKeyboard && (
             <div style={{ width: '100%', maxWidth: '920px', marginTop: '14px' }}>
               <CopticKeyboard
@@ -192,7 +201,7 @@ export const App: React.FC = () => {
           <span>&copy; {new Date().getFullYear()} Coptic Dictionary Online &bull; BBAW &bull; DDGLC &bull; Coptic Scriptorium</span>
         </div>
         <div className="footer-links">
-          <a href="https://github.com/KELLIA/dictionary" target="_blank" rel="noopener noreferrer">GitHub Repository</a>
+          <a href="https://github.com/CoptoAI/lexicon" target="_blank" rel="noopener noreferrer">GitHub Repository</a>
           <a href="https://copticscriptorium.org" target="_blank" rel="noopener noreferrer">Coptic Scriptorium</a>
           <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-SA 4.0</a>
         </div>

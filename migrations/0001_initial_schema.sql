@@ -1,7 +1,7 @@
 
 -- ============================================================================
 -- Coptic Dictionary Online - Cloudflare D1 Full Lexicon Schema
--- Includes FTS5 Trigram Search, Egyptian Etymology, & Inflection Paradigms
+-- Includes FTS5 Trigram Search, Egyptian Etymology, Inflections & Citations
 -- ============================================================================
 
 DROP TABLE IF EXISTS entries;
@@ -9,6 +9,7 @@ DROP TABLE IF EXISTS lemmas;
 DROP TABLE IF EXISTS collocates;
 DROP TABLE IF EXISTS egyptian_etymologies;
 DROP TABLE IF EXISTS inflections;
+DROP TABLE IF EXISTS citations;
 DROP TABLE IF EXISTS entries_fts;
 
 CREATE TABLE entries (
@@ -37,7 +38,8 @@ CREATE TABLE entries (
     fr_json TEXT,
     forms_json TEXT,
     egyptian_json TEXT,
-    inflection_json TEXT
+    inflection_json TEXT,
+    citations_json TEXT
 );
 
 CREATE INDEX idx_entries_coptic_name ON entries(coptic_name);
@@ -71,6 +73,18 @@ CREATE TABLE inflections (
     stative TEXT,
     imperative TEXT
 );
+
+CREATE TABLE citations (
+    tla TEXT,
+    lemma TEXT,
+    urn TEXT,
+    chapter TEXT,
+    verse TEXT,
+    priority INTEGER,
+    notes TEXT
+);
+
+CREATE INDEX idx_citations_tla ON citations(tla);
 
 CREATE TABLE lemmas (
     word TEXT,

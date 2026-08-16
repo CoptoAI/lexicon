@@ -1,66 +1,37 @@
 import { Hono } from 'hono';
-import { cors } from 'hono/cors';
-import { handle } from 'hono/cloudflare-pages';
 
-export interface Env {
+type Bindings = {
   DB: D1Database;
-}
+};
 
-const app = new Hono<{ Bindings: Env }>().basePath('/api');
+const app = new Hono<{ Bindings: Bindings }>().basePath('/api');
 
-app.use('*', cors());
-
-// Health check
-app.get('/health', (c) => c.json({ status: 'ok', runtime: 'cloudflare-pages-d1', timestamp: new Date().toISOString() }));
-
-// Database stats
+// Database metadata & stats
 app.get('/stats', async (c) => {
   try {
-    const entriesCount = await c.env.DB.prepare('SELECT COUNT(*) as count FROM entries').first<number>('count');
-    const lemmasCount = await c.env.DB.prepare('SELECT COUNT(*) as count FROM lemmas').first<number>('count');
-    const collocatesCount = await c.env.DB.prepare('SELECT COUNT(*) as count FROM collocates').first<number>('count');
-    const egyCount = await c.env.DB.prepare('SELECT COUNT(*) as count FROM egyptian_etymologies').first<number>('count');
+    const entriesCount = await c.env.DB.prepare('SELECT count(*) as count FROM entries').first<{ count: number }>();
+    const lemmasCount = await c.env.DB.prepare('SELECT count(*) as count FROM lemmas').first<{ count: number }>();
+    const collocatesCount = await c.env.DB.prepare('SELECT count(*) as count FROM collocates').first<{ count: number }>();
+
     return c.json({
-      entries: entriesCount || 0,
-      lemmas: lemmasCount || 0,
-      collocates: collocatesCount || 0,
-      egyptian_roots: egyCount || 0
+      entries: entriesCount?.count || 0,
+      lemmas: lemmasCount?.count || 0,
+      collocates: collocatesCount?.count || 0
     });
   } catch (err: any) {
     return c.json({ error: err.message }, 500);
   }
 });
 
-// Autocomplete suggestions
-app.get('/suggest', async (c) => {
-  const q = (c.req.query('q') || '').trim();
-  if (!q) return c.json({ suggestions: [] });
-
-  try {
-    const cleanQ = q.replace(/[\'\"\*\^]/g, '');
-    const { results } = await c.env.DB.prepare(`
-      SELECT DISTINCT coptic_name, pos, en_json, origin, freq_rank
-      FROM entries
-      WHERE coptic_name LIKE ? OR coptic_clean LIKE ?
-      ORDER BY freq_rank ASC
-      LIMIT 10
-    `).bind(`${cleanQ}%`, `${cleanQ}%`).all();
-
-    return c.json({ suggestions: results });
-  } catch (err: any) {
-    return c.json({ error: err.message }, 500);
-  }
-});
-
-// Full search endpoint with FTS5, dialect, POS, language, origin and sort filtering
+// Comprehensive Search
 app.get('/search', async (c) => {
-  const q = (c.req.query('q') || '').trim();
+  const q = c.req.query('q')?.trim() || '';
   const dialect = c.req.query('dialect') || 'any';
   const pos = c.req.query('pos') || 'any';
   const lang = c.req.query('lang') || 'any';
   const origin = c.req.query('origin') || 'all';
   const sortBy = c.req.query('sort') || 'alpha';
-  const limit = Math.min(parseInt(c.req.query('limit') || '50', 10), 100);
+  const limit = Math.min(parseInt(c.req.query('limit') || '50', 10), 200);
 
   try {
     const conditions: string[] = [];
@@ -94,7 +65,7 @@ app.get('/search', async (c) => {
 
       if (conditions.length > 0) {
         sql = `
-          SELECT e.id, e.coptic_name, e.pos, e.origin, e.freq_rank, e.ipa_sahidic, e.ipa_bohairic, e.dialects, e.en_json, e.de_json, e.fr_json, e.egyptian_json, e.inflection_json, e.etym, e.xml_id, e.ascii
+          SELECT e.id, e.coptic_name, e.pos, e.origin, e.freq_rank, e.ipa_sahidic, e.ipa_bohairic, e.dialects, e.en_json, e.de_json, e.fr_json, e.egyptian_json, e.inflection_json, e.citations_json, e.etym, e.xml_id, e.ascii
           FROM entries_fts f
           JOIN entries e ON e.id = f.id
           WHERE entries_fts MATCH ? AND ${conditions.join(' AND ')}
@@ -105,7 +76,7 @@ app.get('/search', async (c) => {
         params.push(limit);
       } else {
         sql = `
-          SELECT e.id, e.coptic_name, e.pos, e.origin, e.freq_rank, e.ipa_sahidic, e.ipa_bohairic, e.dialects, e.en_json, e.de_json, e.fr_json, e.egyptian_json, e.inflection_json, e.etym, e.xml_id, e.ascii
+          SELECT e.id, e.coptic_name, e.pos, e.origin, e.freq_rank, e.ipa_sahidic, e.ipa_bohairic, e.dialects, e.en_json, e.de_json, e.fr_json, e.egyptian_json, e.inflection_json, e.citations_json, e.etym, e.xml_id, e.ascii
           FROM entries_fts f
           JOIN entries e ON e.id = f.id
           WHERE entries_fts MATCH ?
@@ -117,7 +88,7 @@ app.get('/search', async (c) => {
     } else {
       const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
       sql = `
-        SELECT e.id, e.coptic_name, e.pos, e.origin, e.freq_rank, e.ipa_sahidic, e.ipa_bohairic, e.dialects, e.en_json, e.de_json, e.fr_json, e.egyptian_json, e.inflection_json, e.etym, e.xml_id, e.ascii
+        SELECT e.id, e.coptic_name, e.pos, e.origin, e.freq_rank, e.ipa_sahidic, e.ipa_bohairic, e.dialects, e.en_json, e.de_json, e.fr_json, e.egyptian_json, e.inflection_json, e.citations_json, e.etym, e.xml_id, e.ascii
         FROM entries e
         ${whereClause}
         ${orderBy}
@@ -133,13 +104,14 @@ app.get('/search', async (c) => {
     } catch (ftsError) {
       // Fallback to LIKE if FTS query encountered unexpected characters
       const fallbackSql = `
-        SELECT e.id, e.coptic_name, e.pos, e.origin, e.freq_rank, e.ipa_sahidic, e.ipa_bohairic, e.dialects, e.en_json, e.de_json, e.fr_json, e.egyptian_json, e.inflection_json, e.etym, e.xml_id
+        SELECT e.id, e.coptic_name, e.pos, e.origin, e.freq_rank, e.ipa_sahidic, e.ipa_bohairic, e.dialects, e.en_json, e.de_json, e.fr_json, e.egyptian_json, e.inflection_json, e.citations_json, e.etym, e.xml_id
         FROM entries e
         WHERE (e.coptic_name LIKE ? OR e.en LIKE ? OR e.de LIKE ? OR e.fr LIKE ?)
         ${orderBy}
         LIMIT ?
       `;
-      const { results } = await c.env.DB.prepare(fallbackSql).bind(`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`, limit).all();
+      const likeParam = `%${q}%`;
+      const { results } = await c.env.DB.prepare(fallbackSql).bind(likeParam, likeParam, likeParam, likeParam, limit).all();
       return c.json({ results, count: results.length });
     }
   } catch (err: any) {
@@ -185,22 +157,27 @@ app.get('/network/:word', async (c) => {
       });
     }
 
-    const nodesMap = new Map();
+    const nodesMap = new Map<string, { id: string; label: string; isRoot: boolean; freq: number }>();
     nodesMap.set(word, { id: word, label: word, isRoot: true, freq: 100 });
 
-    const links: any[] = [];
-    results.forEach((r) => {
-      const other = r.lemma === word ? r.collocate : r.lemma;
+    const links: Array<{ source: string; target: string; value: number }> = [];
+
+    for (const row of results) {
+      const other = row.lemma === word ? row.collocate : row.lemma;
       if (!nodesMap.has(other)) {
-        nodesMap.set(other, { id: other, label: other, isRoot: false, freq: r.freq, assoc: r.assoc });
+        nodesMap.set(other, {
+          id: other,
+          label: other,
+          isRoot: false,
+          freq: row.freq
+        });
       }
       links.push({
-        source: r.lemma,
-        target: r.collocate,
-        freq: r.freq,
-        assoc: r.assoc
+        source: word,
+        target: other,
+        value: Math.max(1, Math.min(10, Math.round(row.assoc * 2)))
       });
-    });
+    }
 
     return c.json({
       nodes: Array.from(nodesMap.values()),
@@ -211,5 +188,24 @@ app.get('/network/:word', async (c) => {
   }
 });
 
-// Export Cloudflare Pages fetch handler
-export const onRequest = handle(app);
+// Quick autocomplete suggestions
+app.get('/suggest', async (c) => {
+  const q = c.req.query('q')?.trim();
+  if (!q || q.length < 1) return c.json({ suggestions: [] });
+
+  try {
+    const cleanQ = q.replace(/[\'\"\*\^]/g, '');
+    const { results } = await c.env.DB.prepare(`
+      SELECT coptic_name, pos, xml_id
+      FROM entries
+      WHERE coptic_clean LIKE ? OR coptic_name LIKE ?
+      LIMIT 8
+    `).bind(`${cleanQ}%`, `${cleanQ}%`).all<{ coptic_name: string; pos: string; xml_id: string }>();
+
+    return c.json({ suggestions: results });
+  } catch (err: any) {
+    return c.json({ error: err.message }, 500);
+  }
+});
+
+export default app;

@@ -90,7 +90,7 @@ function copticDbDevPlugin() {
 
               if (conditions.length > 0) {
                 sql = `
-                  SELECT e.id, e.coptic_name, e.pos, e.origin, e.freq_rank, e.ipa_sahidic, e.ipa_bohairic, e.dialects, e.en_json, e.de_json, e.fr_json, e.egyptian_json, e.inflection_json, e.etym, e.xml_id, e.ascii
+                  SELECT e.id, e.coptic_name, e.pos, e.origin, e.freq_rank, e.ipa_sahidic, e.ipa_bohairic, e.dialects, e.en_json, e.de_json, e.fr_json, e.egyptian_json, e.inflection_json, e.citations_json, e.etym, e.xml_id, e.ascii
                   FROM entries_fts f
                   JOIN entries e ON e.id = f.id
                   WHERE entries_fts MATCH ? AND ${conditions.join(' AND ')}
@@ -101,7 +101,7 @@ function copticDbDevPlugin() {
                 params.push(limit);
               } else {
                 sql = `
-                  SELECT e.id, e.coptic_name, e.pos, e.origin, e.freq_rank, e.ipa_sahidic, e.ipa_bohairic, e.dialects, e.en_json, e.de_json, e.fr_json, e.egyptian_json, e.inflection_json, e.etym, e.xml_id, e.ascii
+                  SELECT e.id, e.coptic_name, e.pos, e.origin, e.freq_rank, e.ipa_sahidic, e.ipa_bohairic, e.dialects, e.en_json, e.de_json, e.fr_json, e.egyptian_json, e.inflection_json, e.citations_json, e.etym, e.xml_id, e.ascii
                   FROM entries_fts f
                   JOIN entries e ON e.id = f.id
                   WHERE entries_fts MATCH ?
@@ -113,7 +113,7 @@ function copticDbDevPlugin() {
             } else {
               const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
               sql = `
-                SELECT e.id, e.coptic_name, e.pos, e.origin, e.freq_rank, e.ipa_sahidic, e.ipa_bohairic, e.dialects, e.en_json, e.de_json, e.fr_json, e.egyptian_json, e.inflection_json, e.etym, e.xml_id, e.ascii
+                SELECT e.id, e.coptic_name, e.pos, e.origin, e.freq_rank, e.ipa_sahidic, e.ipa_bohairic, e.dialects, e.en_json, e.de_json, e.fr_json, e.egyptian_json, e.inflection_json, e.citations_json, e.etym, e.xml_id, e.ascii
                 FROM entries e
                 ${whereClause}
                 ${orderBy}
@@ -122,75 +122,128 @@ function copticDbDevPlugin() {
               params.push(limit);
             }
 
-            const rows = db.prepare(sql).all(...params);
-            res.setHeader('Content-Type', 'application/json; charset=utf-8');
-            return res.end(JSON.stringify({ results: rows || [], count: rows ? rows.length : 0 }));
-          } catch (err: any) {
+            let results: any[] = [];
             try {
-              const fallbackSql = `SELECT e.id, e.coptic_name, e.pos, e.origin, e.freq_rank, e.ipa_sahidic, e.ipa_bohairic, e.dialects, e.en_json, e.de_json, e.fr_json, e.egyptian_json, e.inflection_json, e.etym, e.xml_id FROM entries e WHERE (e.coptic_name LIKE ? OR e.en LIKE ? OR e.de LIKE ? OR e.fr LIKE ?) LIMIT ?`;
-              const fRows = db.prepare(fallbackSql).all(`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`, limit);
-              res.setHeader('Content-Type', 'application/json; charset=utf-8');
-              return res.end(JSON.stringify({ results: fRows || [], count: fRows ? fRows.length : 0 }));
-            } catch (fErr: any) {
-              res.setHeader('Content-Type', 'application/json');
-              return res.end(JSON.stringify({ results: [], count: 0, error: fErr.message }));
+              results = db.prepare(sql).all(...params);
+            } catch (e) {
+              const fallbackSql = `
+                SELECT e.id, e.coptic_name, e.pos, e.origin, e.freq_rank, e.ipa_sahidic, e.ipa_bohairic, e.dialects, e.en_json, e.de_json, e.fr_json, e.egyptian_json, e.inflection_json, e.citations_json, e.etym, e.xml_id
+                FROM entries e
+                WHERE (e.coptic_name LIKE ? OR e.en LIKE ? OR e.de LIKE ? OR e.fr LIKE ?)
+                ${orderBy}
+                LIMIT ?
+              `;
+              const likeParam = `%${q}%`;
+              results = db.prepare(fallbackSql).all(likeParam, likeParam, likeParam, likeParam, limit);
             }
-          }
-        }
 
-        if (pathname.startsWith('/api/entries/')) {
-          if (!db) return res.end(JSON.stringify({ error: 'DB not loaded' }));
-          const id = pathname.replace('/api/entries/', '').trim();
-          try {
-            const isNumeric = /^\d+$/.test(id);
-            const sql = isNumeric
-              ? `SELECT * FROM entries WHERE id = ? LIMIT 1`
-              : `SELECT * FROM entries WHERE xml_id = ? OR coptic_name = ? LIMIT 1`;
-
-            const row = db.prepare(sql).get(isNumeric ? parseInt(id, 10) : id);
             res.setHeader('Content-Type', 'application/json; charset=utf-8');
-            return res.end(JSON.stringify(row || null));
+            return res.end(JSON.stringify({ results, count: results.length }));
           } catch (err: any) {
             res.setHeader('Content-Type', 'application/json');
             return res.end(JSON.stringify({ error: err.message }));
           }
         }
 
-        if (pathname.startsWith('/api/network/')) {
-          if (!db) return res.end(JSON.stringify({ nodes: [], links: [] }));
-          const word = decodeURIComponent(pathname.replace('/api/network/', '').trim());
+        if (pathname.startsWith('/api/entries/')) {
+          if (!db) {
+            res.setHeader('Content-Type', 'application/json');
+            return res.end(JSON.stringify({ error: 'Database not initialized' }));
+          }
+          const id = pathname.replace('/api/entries/', '');
+          const isNumeric = /^\d+$/.test(id);
+          const sql = isNumeric
+            ? `SELECT * FROM entries WHERE id = ? LIMIT 1`
+            : `SELECT * FROM entries WHERE xml_id = ? OR coptic_name = ? LIMIT 1`;
+
           try {
-            const rows: any[] = db.prepare(
-              `SELECT lemma, collocate, freq, assoc FROM collocates WHERE lemma = ? OR collocate = ? ORDER BY freq DESC LIMIT 25`
-            ).all(word, word);
-
-            if (!rows || rows.length === 0) {
-              res.setHeader('Content-Type', 'application/json; charset=utf-8');
-              return res.end(JSON.stringify({ nodes: [{ id: word, label: word, isRoot: true }], links: [] }));
+            const entry = db.prepare(sql).get(isNumeric ? parseInt(id, 10) : id);
+            if (!entry) {
+              res.statusCode = 404;
+              res.setHeader('Content-Type', 'application/json');
+              return res.end(JSON.stringify({ error: 'Entry not found' }));
             }
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
+            return res.end(JSON.stringify(entry));
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            return res.end(JSON.stringify({ error: err.message }));
+          }
+        }
 
-            const nodesMap = new Map();
+        if (pathname.startsWith('/api/network/')) {
+          if (!db) {
+            res.setHeader('Content-Type', 'application/json');
+            return res.end(JSON.stringify({ nodes: [], links: [] }));
+          }
+          const rawWord = pathname.replace('/api/network/', '');
+          const word = decodeURIComponent(rawWord);
+
+          try {
+            const rows = db.prepare(`
+              SELECT lemma, collocate, freq, assoc
+              FROM collocates
+              WHERE lemma = ? OR collocate = ?
+              ORDER BY freq DESC
+              LIMIT 25
+            `).all(word, word);
+
+            const nodesMap = new Map<string, { id: string; label: string; isRoot: boolean; freq: number }>();
             nodesMap.set(word, { id: word, label: word, isRoot: true, freq: 100 });
 
-            const links: any[] = [];
-            rows.forEach((r) => {
-              const other = r.lemma === word ? r.collocate : r.lemma;
+            const links: Array<{ source: string; target: string; value: number }> = [];
+
+            for (const row of rows) {
+              const other = row.lemma === word ? row.collocate : row.lemma;
               if (!nodesMap.has(other)) {
-                nodesMap.set(other, { id: other, label: other, isRoot: false, freq: r.freq, assoc: r.assoc });
+                nodesMap.set(other, {
+                  id: other,
+                  label: other,
+                  isRoot: false,
+                  freq: row.freq
+                });
               }
               links.push({
-                source: r.lemma,
-                target: r.collocate,
-                freq: r.freq,
-                assoc: r.assoc
+                source: word,
+                target: other,
+                value: Math.max(1, Math.min(10, Math.round(row.assoc * 2)))
               });
-            });
+            }
 
             res.setHeader('Content-Type', 'application/json; charset=utf-8');
-            return res.end(JSON.stringify({ nodes: Array.from(nodesMap.values()), links }));
+            return res.end(JSON.stringify({
+              nodes: Array.from(nodesMap.values()),
+              links
+            }));
+          } catch (err: any) {
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            return res.end(JSON.stringify({ error: err.message }));
+          }
+        }
+
+        if (pathname.startsWith('/api/suggest')) {
+          const q = (parsedUrl.searchParams.get('q') || '').trim();
+          if (!q) {
+            res.setHeader('Content-Type', 'application/json');
+            return res.end(JSON.stringify({ suggestions: [] }));
+          }
+
+          try {
+            const cleanQ = q.replace(/[\'\"\*\^]/g, '');
+            const rows = db.prepare(`
+              SELECT coptic_name, pos, xml_id
+              FROM entries
+              WHERE coptic_clean LIKE ? OR coptic_name LIKE ?
+              LIMIT 8
+            `).all(`${cleanQ}%`, `${cleanQ}%`);
+
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
+            return res.end(JSON.stringify({ suggestions: rows }));
           } catch (err: any) {
             res.setHeader('Content-Type', 'application/json');
-            return res.end(JSON.stringify({ nodes: [{ id: word, label: word, isRoot: true }], links: [] }));
+            return res.end(JSON.stringify({ suggestions: [] }));
           }
         }
 
@@ -208,6 +261,6 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: false
+    target: 'esnext'
   }
 });

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Exports clean, Cloudflare D1-compliant SQL statements with small batch sizes
-to prevent SQLITE_TOOBIG limits.
+to prevent SQLITE_TOOBIG limits. Includes citations table.
 """
 
 import sqlite3
@@ -38,6 +38,7 @@ def generate_d1_export():
         f.write("DROP TABLE IF EXISTS entries;\n")
         f.write("DROP TABLE IF EXISTS egyptian_etymologies;\n")
         f.write("DROP TABLE IF EXISTS inflections;\n")
+        f.write("DROP TABLE IF EXISTS citations;\n")
         f.write("DROP TABLE IF EXISTS lemmas;\n")
         f.write("DROP TABLE IF EXISTS collocates;\n")
         f.write("DROP TABLE IF EXISTS entries_fts;\n\n")
@@ -69,7 +70,8 @@ def generate_d1_export():
     fr_json TEXT,
     forms_json TEXT,
     egyptian_json TEXT,
-    inflection_json TEXT
+    inflection_json TEXT,
+    citations_json TEXT
 );
 
 CREATE INDEX idx_entries_coptic_name ON entries(coptic_name);
@@ -103,6 +105,18 @@ CREATE TABLE inflections (
     stative TEXT,
     imperative TEXT
 );
+
+CREATE TABLE citations (
+    tla TEXT,
+    lemma TEXT,
+    urn TEXT,
+    chapter TEXT,
+    verse TEXT,
+    priority INTEGER,
+    notes TEXT
+);
+
+CREATE INDEX idx_citations_tla ON citations(tla);
 
 CREATE TABLE lemmas (
     word TEXT,
@@ -144,7 +158,7 @@ CREATE VIRTUAL TABLE entries_fts USING fts5(
 
         # 3. Export entries (batch of 10)
         print("Exporting entries...")
-        cur.execute("SELECT id, super_ref, name, coptic_name, coptic_clean, pos, origin, freq_rank, ipa_sahidic, ipa_bohairic, de, en, fr, etym, ascii, search, oref, grk_id, xml_id, dialects, en_json, de_json, fr_json, forms_json, egyptian_json, inflection_json FROM entries ORDER BY id")
+        cur.execute("SELECT id, super_ref, name, coptic_name, coptic_clean, pos, origin, freq_rank, ipa_sahidic, ipa_bohairic, de, en, fr, etym, ascii, search, oref, grk_id, xml_id, dialects, en_json, de_json, fr_json, forms_json, egyptian_json, inflection_json, citations_json FROM entries ORDER BY id")
         entries = cur.fetchall()
         for i in range(0, len(entries), 10):
             batch = entries[i:i+10]
@@ -169,7 +183,16 @@ CREATE VIRTUAL TABLE entries_fts USING fts5(
             val_strs = ["(" + ", ".join(sql_escape(v) for v in row) + ")" for row in batch]
             f.write(f"INSERT INTO inflections VALUES {', '.join(val_strs)};\n")
 
-        # 6. Export lemmas (batch of 50)
+        # 6. Export citations (batch of 20)
+        print("Exporting citations...")
+        cur.execute("SELECT tla, lemma, urn, chapter, verse, priority, notes FROM citations")
+        cits = cur.fetchall()
+        for i in range(0, len(cits), 20):
+            batch = cits[i:i+20]
+            val_strs = ["(" + ", ".join(sql_escape(v) for v in row) + ")" for row in batch]
+            f.write(f"INSERT INTO citations VALUES {', '.join(val_strs)};\n")
+
+        # 7. Export lemmas (batch of 50)
         print("Exporting lemmas...")
         cur.execute("SELECT word, pos, lemma, word_count, word_freq, word_rank, lemma_count, lemma_freq, lemma_rank FROM lemmas")
         lemmas = cur.fetchall()
@@ -178,7 +201,7 @@ CREATE VIRTUAL TABLE entries_fts USING fts5(
             val_strs = ["(" + ", ".join(sql_escape(v) for v in row) + ")" for row in batch]
             f.write(f"INSERT INTO lemmas VALUES {', '.join(val_strs)};\n")
 
-        # 7. Export collocates (batch of 50)
+        # 8. Export collocates (batch of 50)
         print("Exporting collocates...")
         cur.execute("SELECT lemma, collocate, freq, assoc FROM collocates")
         collocates = cur.fetchall()
@@ -187,7 +210,7 @@ CREATE VIRTUAL TABLE entries_fts USING fts5(
             val_strs = ["(" + ", ".join(sql_escape(v) for v in row) + ")" for row in batch]
             f.write(f"INSERT INTO collocates VALUES {', '.join(val_strs)};\n")
 
-        # 8. Populate entries_fts via server-side SELECT query!
+        # 9. Populate entries_fts via server-side SELECT query
         f.write("\n-- Populate Trigram FTS5 index from entries\n")
         f.write("INSERT INTO entries_fts(id, coptic_name, coptic_clean, en_text, de_text, fr_text, etym, pos, origin) SELECT id, coptic_name, coptic_clean, en, de, fr, etym, pos, origin FROM entries;\n")
 

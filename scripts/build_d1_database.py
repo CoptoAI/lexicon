@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Database Migration & Exporter for Cloudflare D1 (Coptic Dictionary)
-Reads alpha_kyima_rc1.db, egyptian_etymologies.tab, and inflections.tab,
+Reads alpha_*.db, egyptian_etymologies.tab, inflections.tab, and citations_manual.tab,
 producing a fully enriched, FTS5-enabled SQLite database for Cloudflare D1.
 """
 
@@ -12,6 +12,7 @@ import re
 import os
 import sys
 import unicodedata
+import glob
 
 def strip_diacritics(text: str) -> str:
     """Normalize Coptic text by removing supralinear strokes, macrons, jinkim, hyphens, and equal signs."""
@@ -58,89 +59,77 @@ def parse_forms(name_str: str):
             m = re.match(r'^(.*?)~(.?\^\^([A-Za-z0-9_]*))$', l)
             if m:
                 orth = m.group(1).strip()
-                dial_raw = m.group(2).strip()
+                dialect_raw = m.group(2).strip()
                 form_id = m.group(3).strip()
-                dial = dial_raw.split('^^')[0].replace('~','').strip()
-                if dial:
-                    dialects_set.add(dial)
+                dialect = dialect_raw.split('^^')[0].replace('~', '').strip()
+                if dialect:
+                    dialects_set.add(dialect)
                 forms.append({
                     'orth': orth,
-                    'dialect': dial,
-                    'gram': gram,
-                    'form_id': form_id
+                    'dialect': dialect,
+                    'form_id': form_id,
+                    'gram': gram
                 })
             else:
                 forms.append({
                     'orth': l,
                     'dialect': '',
-                    'gram': gram,
-                    'form_id': ''
+                    'form_id': '',
+                    'gram': gram
                 })
     return forms, sorted(list(dialects_set))
 
-def extract_primary_coptic(name_str: str, oref_str: str) -> str:
-    """Extract clean primary Coptic headword."""
-    if oref_str:
-        first_ref = oref_str.split('|||')[0].strip()
-        if first_ref:
-            return first_ref
-    m = re.search(r'(?:^|\n)([^\n].*?)~', name_str or '')
-    if m:
-        return m.group(1).strip()
-    return name_str.split('\n')[0].strip() if name_str else ""
+def determine_origin(etym: str, grk_id: str, pos: str) -> str:
+    """Classify origin of word into 'egyptian', 'greek', or 'semitic'."""
+    if grk_id or (etym and ('greek' in etym.lower() or 'gr.' in etym.lower() or 'grk' in etym.lower())):
+        return 'greek'
+    if etym and ('hebr' in etym.lower() or 'arab' in etym.lower() or 'aram' in etym.lower()):
+        return 'semitic'
+    return 'egyptian'
 
 def generate_ipa(coptic_word: str, dialect: str = 'S') -> str:
-    """Generate approximate International Phonetic Alphabet (IPA) for Coptic words."""
+    """Generate phonetic IPA representation for Sahidic (S) or Bohairic (B)."""
     if not coptic_word:
         return ""
-    w = coptic_word.lower()
+    clean = strip_diacritics(coptic_word)
     
-    # Character to IPA mappings
-    sahidic_map = {
+    # Character phonetic mapping
+    ipa_map_sahidic = {
         'ⲁ': 'a', 'ⲃ': 'β', 'ⲅ': 'g', 'ⲇ': 'd', 'ⲉ': 'e', 'ⲍ': 'z',
         'ⲏ': 'eː', 'ⲑ': 'tʰ', 'ⲓ': 'i', 'ⲕ': 'k', 'ⲗ': 'l', 'ⲙ': 'm',
         'ⲛ': 'n', 'ⲝ': 'ks', 'ⲟ': 'o', 'ⲡ': 'p', 'ⲣ': 'r', 'ⲥ': 's',
         'ⲧ': 't', 'ⲩ': 'u', 'ⲫ': 'pʰ', 'ⲭ': 'kʰ', 'ⲯ': 'ps', 'ⲱ': 'oː',
-        'ϣ': 'ʃ', 'ϥ': 'f', 'ϧ': 'x', 'ⳉ': 'x', 'ϩ': 'h', 'ϫ': 't͡ʃ',
-        'ϭ': 'c', 'ϯ': 'ti', '⸗': '', '-': ''
+        'ϣ': 'ʃ', 'ϥ': 'f', 'ϧ': 'x', 'ⳉ': 'x', 'ϩ': 'h', 'ϫ': 'tʃ',
+        'ϭ': 'c', 'ϯ': 'ti'
     }
     
-    bohairic_map = {
-        'ⲁ': 'a', 'ⲃ': 'v', 'ⲅ': 'ɣ', 'ⲇ': 'd', 'ⲉ': 'e', 'ⲍ': 'z',
-        'ⲏ': 'i', 'ⲑ': 'tʰ', 'ⲓ': 'i', 'ⲕ': 'k', 'ⲗ': 'l', 'ⲙ': 'm',
-        'ⲛ': 'n', 'ⲝ': 'ks', 'ⲟ': 'o', 'ⲡ': 'b', 'ⲣ': 'r', 'ⲥ': 's',
+    ipa_map_bohairic = {
+        'ⲁ': 'a', 'ⲃ': 'v', 'ⲅ': 'ɣ', 'ⲇ': 'ð', 'ⲉ': 'e', 'ⲍ': 'z',
+        'ⲏ': 'iː', 'ⲑ': 'tʰ', 'ⲓ': 'i', 'ⲕ': 'k', 'ⲗ': 'l', 'ⲙ': 'm',
+        'ⲛ': 'n', 'ⲝ': 'ks', 'ⲟ': 'o', 'ⲡ': 'p', 'ⲣ': 'r', 'ⲥ': 's',
         'ⲧ': 't', 'ⲩ': 'i', 'ⲫ': 'f', 'ⲭ': 'x', 'ⲯ': 'ps', 'ⲱ': 'oː',
-        'ϣ': 'ʃ', 'ϥ': 'f', 'ϧ': 'x', 'ⳉ': 'x', 'ϩ': 'h', 'ϫ': 'd͡ʒ',
-        'ϭ': 't͡ʃ', 'ϯ': 'di', '⸗': '', '-': ''
+        'ϣ': 'ʃ', 'ϥ': 'f', 'ϧ': 'x', 'ⳉ': 'x', 'ϩ': 'h', 'ϫ': 'dʒ',
+        'ϭ': 'tʃ', 'ϯ': 'di'
     }
-    
-    m = bohairic_map if dialect == 'B' else sahidic_map
+
+    cur_map = ipa_map_bohairic if dialect == 'B' else ipa_map_sahidic
     ipa_chars = []
-    for ch in w:
-        if ch in m:
-            ipa_chars.append(m[ch])
-        elif ch in ' \t':
-            ipa_chars.append(' ')
-            
-    res = "".join(ipa_chars)
-    # Simple syllable stress on penultimate or initial syllable
-    if len(res) > 3 and not res.startswith('ˈ'):
-        res = 'ˈ' + res
-    return f"/{res}/" if res else ""
+    for ch in clean:
+        ipa_chars.append(cur_map.get(ch, ch))
+    return '/' + ''.join(ipa_chars) + '/'
 
 def load_egyptian_etymologies(filepath: str):
-    """Load Egyptian etymologies tab file."""
+    """Load Ancient Egyptian & Demotic Gardiner etymologies."""
     if not os.path.exists(filepath):
         print(f"Warning: {filepath} not found")
         return {}
     etyms = {}
     with open(filepath, 'r', encoding='utf-8') as f:
-        headers = None
         for line in f:
-            parts = line.rstrip('\r\n').split('\t')
-            if not headers:
-                headers = parts
+            line = line.strip()
+            if not line or line.startswith('#'):
                 continue
+            parts = line.split('\t')
             if len(parts) >= 10:
                 tla = parts[0].strip()
                 etyms[tla] = {
@@ -184,12 +173,38 @@ def load_inflections(filepath: str):
     print(f"Loaded {len(inflections)} inflection paradigms.")
     return inflections
 
+def load_citations(filepath: str):
+    """Load manuscript citations with CTS URNs."""
+    if not os.path.exists(filepath):
+        print(f"Warning: {filepath} not found")
+        return {}
+    citations = {}
+    with open(filepath, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith('TLA') or line.startswith('#'):
+                continue
+            parts = line.split('\t')
+            if len(parts) >= 6:
+                tla = parts[0].strip()
+                cit = {
+                    'lemma': parts[1].strip(),
+                    'urn': parts[2].strip(),
+                    'chapter': parts[3].strip() if len(parts) > 3 else '',
+                    'verse': parts[4].strip() if len(parts) > 4 else '',
+                    'priority': int(parts[5].strip()) if len(parts) > 5 and parts[5].strip().isdigit() else 1,
+                    'notes': parts[7].strip() if len(parts) > 7 else ''
+                }
+                if tla not in citations:
+                    citations[tla] = []
+                citations[tla].append(cit)
+    print(f"Loaded {sum(len(v) for v in citations.values())} manuscript citations.")
+    return citations
+
 def find_latest_source_db(base_dir: str) -> str:
     """Find the newest alpha_*.db or custom source database in the project directory."""
-    import glob
     db_candidates = glob.glob(os.path.join(base_dir, 'alpha_*.db'))
     if db_candidates:
-        # Sort by latest modification time or name
         db_candidates.sort(key=lambda p: (os.path.getmtime(p), p), reverse=True)
         return db_candidates[0]
     return os.path.join(base_dir, 'alpha_kyima_rc1.db')
@@ -200,6 +215,7 @@ def build_d1_database(base_dir: str, custom_src_db: str = None):
     schema_sql_path = os.path.join(base_dir, 'migrations', '0001_initial_schema.sql')
     egy_etym_path = os.path.join(base_dir, 'utils', 'egyptian_etymologies.tab')
     inflections_path = os.path.join(base_dir, 'utils', 'inflections.tab')
+    citations_path = os.path.join(base_dir, 'utils', 'citations_manual.tab')
 
     print(f"Connecting to source database: {src_db_path}")
     if not os.path.exists(src_db_path):
@@ -209,6 +225,7 @@ def build_d1_database(base_dir: str, custom_src_db: str = None):
 
     egyptian_etyms = load_egyptian_etymologies(egy_etym_path)
     inflections_data = load_inflections(inflections_path)
+    citations_data = load_citations(citations_path)
 
     # Load lemma frequencies for ranking
     src_cur.execute("SELECT lemma, MIN(lemma_rank) as rank FROM lemmas WHERE lemma_rank > 0 GROUP BY lemma")
@@ -224,7 +241,7 @@ def build_d1_database(base_dir: str, custom_src_db: str = None):
     schema_sql = """
 -- ============================================================================
 -- Coptic Dictionary Online - Cloudflare D1 Full Lexicon Schema
--- Includes FTS5 Trigram Search, Egyptian Etymology, & Inflection Paradigms
+-- Includes FTS5 Trigram Search, Egyptian Etymology, Inflections & Citations
 -- ============================================================================
 
 DROP TABLE IF EXISTS entries;
@@ -232,6 +249,7 @@ DROP TABLE IF EXISTS lemmas;
 DROP TABLE IF EXISTS collocates;
 DROP TABLE IF EXISTS egyptian_etymologies;
 DROP TABLE IF EXISTS inflections;
+DROP TABLE IF EXISTS citations;
 DROP TABLE IF EXISTS entries_fts;
 
 CREATE TABLE entries (
@@ -260,7 +278,8 @@ CREATE TABLE entries (
     fr_json TEXT,
     forms_json TEXT,
     egyptian_json TEXT,
-    inflection_json TEXT
+    inflection_json TEXT,
+    citations_json TEXT
 );
 
 CREATE INDEX idx_entries_coptic_name ON entries(coptic_name);
@@ -294,6 +313,18 @@ CREATE TABLE inflections (
     stative TEXT,
     imperative TEXT
 );
+
+CREATE TABLE citations (
+    tla TEXT,
+    lemma TEXT,
+    urn TEXT,
+    chapter TEXT,
+    verse TEXT,
+    priority INTEGER,
+    notes TEXT
+);
+
+CREATE INDEX idx_citations_tla ON citations(tla);
 
 CREATE TABLE lemmas (
     word TEXT,
@@ -332,62 +363,57 @@ CREATE VIRTUAL TABLE entries_fts USING fts5(
     tokenize='trigram'
 );
 """
-
     tgt_cur.executescript(schema_sql)
-    os.makedirs(os.path.dirname(os.path.abspath(schema_sql_path)), exist_ok=True)
+
+    # Save initial schema migration file
+    os.makedirs(os.path.dirname(schema_sql_path), exist_ok=True)
     with open(schema_sql_path, 'w', encoding='utf-8') as f:
         f.write(schema_sql)
 
-    print("Migrating enriched entries...")
-    src_cur.execute("SELECT Id, Super_Ref, Name, POS, De, En, Fr, Etym, Ascii, Search, oRef, grkId, xml_id FROM entries ORDER BY Id")
+    print("Extracting entries from source database...")
+    src_cur.execute("""
+        SELECT Id, Super_Ref, Name, POS, De, En, Fr, Etym, Ascii, Search, oRef, grkId, xml_id
+        FROM entries
+        ORDER BY Id
+    """)
     raw_entries = src_cur.fetchall()
 
     entries_to_insert = []
     fts_to_insert = []
 
     for row in raw_entries:
-        (entry_id, super_ref, name, pos, de, en, fr, etym, ascii_code, search, oref, grk_id, xml_id) = row
-        tla_id = xml_id or f"C{entry_id}"
-        coptic_name = extract_primary_coptic(name, oref)
-        coptic_clean = strip_diacritics(coptic_name) + " " + strip_diacritics(search or "")
-        
-        # Origin determination
-        if grk_id or (etym and '<greek' in etym.lower()) or (xml_id and xml_id.startswith('CG')):
-            origin = 'greek'
-        elif tla_id in egyptian_etyms:
-            origin = 'egyptian'
-        elif etym and ('sem.' in etym.lower() or 'hebr.' in etym.lower() or 'aram.' in etym.lower()):
-            origin = 'semitic'
-        else:
-            origin = 'egyptian'
+        entry_id, super_ref, name_raw, pos, de, en, fr, etym, ascii_code, search, oref, grk_id, tla_id = row
+        forms, dialects_list = parse_forms(name_raw)
 
-        # Frequency rank
-        freq_rank = lemma_ranks.get(coptic_name, 99999)
-
-        # IPA pronunciations
-        ipa_s = generate_ipa(coptic_name, 'S')
-        ipa_b = generate_ipa(coptic_name, 'B')
+        coptic_name = forms[0]['orth'] if forms else (search or "")
+        coptic_clean = strip_diacritics(coptic_name)
+        dialects_str = ",".join(dialects_list)
 
         en_senses = parse_senses(en)
         de_senses = parse_senses(de)
         fr_senses = parse_senses(fr)
-        forms, dialects = parse_forms(name)
 
         en_text = " ".join([s['definition'] for s in en_senses])
         de_text = " ".join([s['definition'] for s in de_senses])
         fr_text = " ".join([s['definition'] for s in fr_senses])
-        dialects_str = ",".join(dialects)
 
-        egy_obj = egyptian_etyms.get(tla_id, None)
-        inflection_obj = inflections_data.get(tla_id, None)
+        origin = determine_origin(etym, grk_id, pos)
+        freq_rank = lemma_ranks.get(coptic_name, lemma_ranks.get(coptic_clean, 99999))
+
+        ipa_s = generate_ipa(coptic_name, 'S')
+        ipa_b = generate_ipa(coptic_name, 'B')
+
+        egy_obj = egyptian_etyms.get(tla_id)
+        inflection_obj = inflections_data.get(tla_id)
+        citations_obj = citations_data.get(tla_id, [])
 
         entries_to_insert.append((
             entry_id,
             super_ref,
-            name,
+            name_raw or "",
             coptic_name,
             coptic_clean,
-            pos,
+            pos or "",
             origin,
             freq_rank,
             ipa_s,
@@ -407,7 +433,8 @@ CREATE VIRTUAL TABLE entries_fts USING fts5(
             json.dumps(fr_senses, ensure_ascii=False),
             json.dumps(forms, ensure_ascii=False),
             json.dumps(egy_obj, ensure_ascii=False) if egy_obj else "",
-            json.dumps(inflection_obj, ensure_ascii=False) if inflection_obj else ""
+            json.dumps(inflection_obj, ensure_ascii=False) if inflection_obj else "",
+            json.dumps(citations_obj, ensure_ascii=False) if citations_obj else ""
         ))
 
         fts_to_insert.append((
@@ -426,8 +453,8 @@ CREATE VIRTUAL TABLE entries_fts USING fts5(
         INSERT INTO entries (
             id, super_ref, name, coptic_name, coptic_clean, pos, origin, freq_rank, ipa_sahidic, ipa_bohairic,
             de, en, fr, etym, ascii, search, oref, grk_id, xml_id, dialects,
-            en_json, de_json, fr_json, forms_json, egyptian_json, inflection_json
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            en_json, de_json, fr_json, forms_json, egyptian_json, inflection_json, citations_json
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, entries_to_insert)
 
     tgt_cur.executemany("""
@@ -458,6 +485,17 @@ CREATE VIRTUAL TABLE entries_fts USING fts5(
         VALUES (?, ?, ?, ?, ?, ?, ?)
     """, infl_records)
     print(f"Inserted {len(infl_records)} inflection paradigm records.")
+
+    # Ingest citations table
+    all_cit_records = []
+    for tla, cits in citations_data.items():
+        for c in cits:
+            all_cit_records.append((tla, c['lemma'], c['urn'], c['chapter'], c['verse'], c['priority'], c['notes']))
+    tgt_cur.executemany("""
+        INSERT INTO citations (tla, lemma, urn, chapter, verse, priority, notes)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, all_cit_records)
+    print(f"Inserted {len(all_cit_records)} manuscript citations.")
 
     print("Migrating lemmas...")
     src_cur.execute("SELECT word, pos, lemma, word_count, word_freq, word_rank, lemma_count, lemma_freq, lemma_rank FROM lemmas")

@@ -33,6 +33,15 @@ export interface InflectionParadigm {
   imperative?: string;
 }
 
+export interface ManuscriptCitation {
+  lemma: string;
+  urn: string;
+  chapter?: string;
+  verse?: string;
+  priority?: number;
+  notes?: string;
+}
+
 export interface DictionaryEntry {
   id: number;
   super_ref?: number;
@@ -50,6 +59,7 @@ export interface DictionaryEntry {
   forms_json?: string;
   egyptian_json?: string;
   inflection_json?: string;
+  citations_json?: string;
   etym?: string;
   ascii?: string;
   search?: string;
@@ -62,15 +72,28 @@ export interface DictionaryEntry {
   parsed_forms?: FormItem[];
   parsed_egyptian?: EgyptianEtymology;
   parsed_inflection?: InflectionParadigm;
+  parsed_citations?: ManuscriptCitation[];
 }
 
 export interface SearchFilters {
   query: string;
   dialect: string;
   pos: string;
-  lang: 'any' | 'en' | 'de' | 'fr';
-  origin: 'all' | 'egyptian' | 'greek';
-  sortBy: 'alpha' | 'freq';
+  lang: string;
+  origin?: 'all' | 'egyptian' | 'greek';
+  sortBy?: 'alpha' | 'freq';
+}
+
+export interface DatabaseStats {
+  entries: number;
+  lemmas: number;
+  collocates: number;
+}
+
+export interface CollocateItem {
+  collocate: string;
+  freq: number;
+  assoc: number;
 }
 
 export interface NetworkNode {
@@ -78,25 +101,19 @@ export interface NetworkNode {
   label: string;
   isRoot?: boolean;
   freq?: number;
-  assoc?: number;
   x?: number;
   y?: number;
+  vx?: number;
+  vy?: number;
 }
 
 export interface NetworkLink {
   source: string | NetworkNode;
   target: string | NetworkNode;
-  freq: number;
-  assoc: number;
+  value: number;
 }
 
 export interface NetworkData {
   nodes: NetworkNode[];
   links: NetworkLink[];
-}
-
-export interface DatabaseStats {
-  entries: number;
-  lemmas: number;
-  collocates: number;
 }

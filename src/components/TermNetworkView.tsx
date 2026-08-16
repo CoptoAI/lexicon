@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { NetworkData, NetworkNode } from '../types/dictionary';
+import { NetworkData, NetworkNode, NetworkLink } from '../types/dictionary';
 import { fetchTermNetwork } from '../services/api';
 import { X, ZoomIn, ZoomOut, RotateCcw, Share2 } from 'lucide-react';
 
@@ -60,7 +60,7 @@ export const TermNetworkView: React.FC<TermNetworkViewProps> = ({
     canvas.height = height * window.devicePixelRatio;
 
     // Initialize node positions in a radial cluster
-    const nodes = data.nodes.map((n, i) => {
+    const nodes = data.nodes.map((n: NetworkNode, i: number) => {
       const isRoot = n.isRoot || n.id === word;
       const angle = (i / Math.max(1, data.nodes.length - 1)) * 2 * Math.PI;
       const dist = isRoot ? 0 : 120 + Math.random() * 60;
@@ -74,9 +74,9 @@ export const TermNetworkView: React.FC<TermNetworkViewProps> = ({
       };
     });
 
-    const links = data.links.map((l) => {
-      const sourceNode = nodes.find((n) => n.id === l.source || n.id === (l.source as any).id);
-      const targetNode = nodes.find((n) => n.id === l.target || n.id === (l.target as any).id);
+    const links = data.links.map((l: NetworkLink) => {
+      const sourceNode = nodes.find((n: NetworkNode) => n.id === l.source || n.id === (l.source as any).id);
+      const targetNode = nodes.find((n: NetworkNode) => n.id === l.target || n.id === (l.target as any).id);
       return {
         ...l,
         source: sourceNode || nodes[0],
