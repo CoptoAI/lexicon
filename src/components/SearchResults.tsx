@@ -3,6 +3,8 @@ import { DictionaryEntry, Sense } from '../types/dictionary';
 import { DIALECT_DESCRIPTIONS, POS_DESCRIPTIONS } from '../utils/coptic';
 import { playSynthesizedCoptic } from '../utils/audio';
 import { Share2, Sparkles, BookOpen, Volume2, Flame } from 'lucide-react';
+import { UiTranslations } from '../utils/i18n';
+import { stripHtmlAndTags } from '../utils/richText';
 
 interface SearchResultsProps {
   entries: DictionaryEntry[];
@@ -10,6 +12,7 @@ interface SearchResultsProps {
   loading: boolean;
   onSelectEntry: (entry: DictionaryEntry) => void;
   onViewNetwork: (word: string) => void;
+  t: UiTranslations;
 }
 
 export const SearchResults: React.FC<SearchResultsProps> = ({
@@ -17,7 +20,8 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
   totalCount,
   loading,
   onSelectEntry,
-  onViewNetwork
+  onViewNetwork,
+  t
 }) => {
   const [playingWord, setPlayingWord] = useState<string | null>(null);
 
@@ -28,6 +32,12 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       } catch (e) {}
     }
+    if (entry.ar_json) {
+      try {
+        const parsed = JSON.parse(entry.ar_json);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
     if (entry.de_json) {
       try {
         const parsed = JSON.parse(entry.de_json);
@@ -35,6 +45,18 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
       } catch (e) {}
     }
     return [];
+  };
+
+  const getArabicSense = (entry: DictionaryEntry): string | null => {
+    if (entry.ar_json) {
+      try {
+        const parsed = JSON.parse(entry.ar_json);
+        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].definition) {
+          return parsed[0].definition;
+        }
+      } catch (e) {}
+    }
+    return null;
   };
 
   const getDialectList = (dialectsStr?: string): string[] => {
@@ -63,9 +85,9 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
     return (
       <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)', background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)', border: '1px dashed var(--border-subtle)' }}>
         <BookOpen size={40} style={{ margin: '0 auto 16px auto', color: 'var(--accent-gold)' }} />
-        <h3 style={{ fontSize: '18px', color: 'var(--text-primary)', marginBottom: '8px' }}>No matching entries found</h3>
+        <h3 style={{ fontSize: '18px', color: 'var(--text-primary)', marginBottom: '8px' }}>{t.noResultsTitle}</h3>
         <p style={{ maxWidth: '500px', margin: '0 auto', fontSize: '14px' }}>
-          Try broadening your search term, toggling the Origin filter to &quot;All Lexicon&quot;, or using the Coptic Virtual Keyboard.
+          {t.noResultsBody}
         </p>
       </div>
     );
@@ -74,8 +96,8 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
   return (
     <div>
       <div className="results-header">
-        <span>Showing {entries.length} of {totalCount.toLocaleString()} matching entries</span>
-        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Click any card for full conjugation, Egyptian roots &amp; citations</span>
+        <span>{t.showingResults(entries.length, totalCount)}</span>
+        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{t.resultsHint}</span>
       </div>
 
       <div className="results-grid">
@@ -186,13 +208,23 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
                     )}
                   </div>
                 ))}
+
+                {/* Arabic Gloss */}
+                {getArabicSense(entry) && (
+                  <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span className="arabic-badge">العربية</span>
+                    <span className="arabic-definition" style={{ fontSize: '13px', color: 'var(--text-primary)' }}>
+                      {getArabicSense(entry)}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Etymology / Cross-reference info */}
               {entry.etym && (
                 <div className="entry-etym-preview">
                   <Sparkles size={12} color="var(--accent-gold)" />
-                  <span>{entry.etym.replace(/#/g, '')}</span>
+                  <span>{stripHtmlAndTags(entry.etym)}</span>
                 </div>
               )}
             </div>

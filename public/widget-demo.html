@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CoptoLex Embeddable Widget Demo (widget.js)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    @font-face {
+      font-family: 'Antinoou';
+      src: local('Antinoou'), local('Antinoou Coptic'),
+           url('/fonts/Antinoou.woff2') format('woff2'),
+           url('/fonts/Antinoou.woff') format('woff'),
+           url('/fonts/Antinoou.ttf') format('truetype');
+      font-display: swap;
+    }
+
+    :root {
+      --bg: #0c0f17;
+      --bg-card: #121824;
+      --border: rgba(212, 175, 55, 0.25);
+      --gold: #d4af37;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+    }
+
+    [data-theme="light"] {
+      --bg: #f8fafc;
+      --bg-card: #ffffff;
+      --border: rgba(179, 134, 0, 0.25);
+      --gold: #b38600;
+      --text: #0f172a;
+      --text-muted: #64748b;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 40px 20px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      transition: background 0.3s ease, color 0.3s ease;
+    }
+
+    .container {
+      max-width: 840px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      background: rgba(212, 175, 55, 0.15);
+      color: var(--gold);
+      border: 1px solid var(--border);
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      font-size: 32px;
+      margin: 0 0 10px 0;
+      color: var(--text);
+    }
+
+    p.subtitle {
+      color: var(--text-muted);
+      font-size: 16px;
+      margin: 0;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    }
+
+    .card h2 {
+      margin-top: 0;
+      font-size: 18px;
+      color: var(--gold);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .coptic-passage {
+      font-family: 'Antinoou', 'Athena', sans-serif;
+      font-size: 24px;
+      line-height: 2;
+      color: var(--gold);
+      background: rgba(0,0,0,0.15);
+      padding: 16px 20px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .controls-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .btn {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+      background: var(--gold);
+      color: #0c0f17;
+    }
+
+    code {
+      font-family: ui-monospace, monospace;
+      background: rgba(0,0,0,0.3);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--gold);
+      font-size: 13px;
+    }
+
+    pre {
+      background: #080b11;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      color: #e2e8f0;
+      overflow-x: auto;
+      font-size: 13px;
+    }
+  </style>
+
+  <!-- Embed CoptoLex Widget -->
+  <script src="/widget.js" data-theme="auto" data-audio="true" data-selection-lookup="true" async></script>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="badge">🚀 CoptoLex Embedding Engine</div>
+      <h1>Embeddable Word Tooltip Widget</h1>
+      <p class="subtitle">Hover or double-click any Coptic word below for instant definitions, audio pronunciation, and morphology!</p>
+    </div>
+
+    <!-- Quick Controls -->
+    <div class="card">
+      <h2>⚙️ Widget Interactive Controls</h2>
+      <p style="font-size: 14px; color: var(--text-muted); margin: 0 0 12px 0;">
+        Test widget responsiveness to host page settings:
+      </p>
+      <div class="controls-grid">
+        <button class="btn" onclick="toggleTheme()">🌓 Toggle Page Theme</button>
+        <button class="btn" onclick="setLang('en')">🇬🇧 English Tooltips</button>
+        <button class="btn" onclick="setLang('de')">🇩🇪 German (Deutsch)</button>
+        <button class="btn" onclick="setLang('fr')">🇫🇷 French (Français)</button>
+      </div>
+    </div>
+
+    <!-- Demo Section 1: Sahidic Gospel of John -->
+    <div class="card">
+      <h2>📖 1. Sahidic New Testament (Gospel of John 1:1-3)</h2>
+      <p style="font-size: 14px; color: var(--text-muted);">
+        Every word wrapped in <code>class="coptic"</code> is automatically recognized and enhanced:
+      </p>
+      <div class="coptic-passage">
+        <span class="coptic">ϩⲛ</span> <span class="coptic">ⲧⲉϩⲟⲩⲉⲓⲧⲉ</span> <span class="coptic">ⲛⲉϥϣⲟⲟⲡ</span> <span class="coptic">ⲛϭⲓ</span> <span class="coptic">ⲡϣⲁϫⲉ</span> 
+        <span class="coptic">ⲁⲩⲱ</span> <span class="coptic">ⲡϣⲁϫⲉ</span> <span class="coptic">ⲛⲉϥϣⲟⲟⲡ</span> <span class="coptic">ⲛⲛⲁϩⲣⲙ</span> <span class="coptic">ⲡⲛⲟⲩⲧⲉ</span> 
+        <span class="coptic">ⲁⲩⲱ</span> <span class="coptic">ⲛⲉⲩⲛⲟⲩⲧⲉ</span> <span class="coptic">ⲡⲉ</span> <span class="coptic">ⲡϣⲁϫⲉ</span>.
+        <span class="coptic">ⲡⲁⲓ</span> <span class="coptic">ⲛⲉϥϣⲟⲟⲡ</span> <span class="coptic">ϩⲛ</span> <span class="coptic">ⲧⲉϩⲟⲩⲉⲓⲧⲉ</span> <span class="coptic">ϩⲁϩⲧⲙ</span> <span class="coptic">ⲡⲛⲟⲩⲧⲉ</span>.
+      </div>
+    </div>
+
+    <!-- Demo Section 2: Bohairic Agpeya Prayer -->
+    <div class="card">
+      <h2>🙏 2. Bohairic Liturgy (The Trisagion)</h2>
+      <p style="font-size: 14px; color: var(--text-muted);">
+        With Greek loanwords (<code>🏛️ Greek</code>) and Ancient Egyptian roots (<code>🏺 Egyptian</code>):
+      </p>
+      <div class="coptic-passage">
+        <span class="coptic">ⲁⲅⲓⲟⲥ</span> <span class="coptic">ⲟ</span> <span class="coptic">ⲑⲉⲟⲥ</span>, 
+        <span class="coptic">ⲁⲅⲓⲟⲥ</span> <span class="coptic">ⲓⲥⲭⲩⲣⲟⲥ</span>, 
+        <span class="coptic">ⲁⲅⲓⲟⲥ</span> <span class="coptic">ⲁⲑⲁⲛⲁⲧⲟⲥ</span>, 
+        <span class="coptic">ⲫⲏⲉⲧⲁⲩⲙⲁⲥϥ</span> <span class="coptic">ⲉⲃⲟⲗ</span> <span class="coptic">ϧⲉⲛ</span> <span class="coptic">ϯⲡⲁⲣⲑⲉⲛⲟⲥ</span>, 
+        <span class="coptic">ⲛⲁⲓ</span> <span class="coptic">ⲛⲁⲛ</span>.
+      </div>
+    </div>
+
+    <!-- Demo Section 3: Explicit Lemma Overrides -->
+    <div class="card">
+      <h2>🏷️ 3. Explicit Lemma Overrides (<code>data-coptic-lemma</code>)</h2>
+      <p style="font-size: 14px; color: var(--text-muted);">
+        You can explicitly specify the dictionary lemma if text is conjugated or inflected:
+      </p>
+      <div class="coptic-passage">
+        <span class="coptic" data-coptic-lemma="ⲛⲟⲩⲧⲉ">ⲡⲛⲟⲩⲧⲉ</span> 
+        <span class="coptic" data-coptic-lemma="ⲙⲉ">ⲁϥⲙⲉⲣⲓⲧⲛ</span> 
+        <span class="coptic" data-coptic-lemma="ⲁⲅⲁⲡⲏ">ⲧⲁⲅⲁⲡⲏ</span> 
+        <span class="coptic" data-coptic-lemma="ⲣⲱⲙⲉ">ⲛⲣⲱⲙⲉ</span>.
+      </div>
+    </div>
+
+    <!-- Demo Section 4: Double-Click Selection Lookup -->
+    <div class="card">
+      <h2>✨ 4. Selection & Double-Click Lookup</h2>
+      <p style="font-size: 14px; color: var(--text-muted);">
+        Double-click or highlight any Coptic word in the paragraph below to trigger the floating tooltip:
+      </p>
+      <p style="font-size: 18px; line-height: 1.8;">
+        The monk answered: ⲁⲣⲓ ⲟⲩⲛⲁ ⲛⲙⲙⲁⲓ ⲡⲁⲥⲟⲛ, and taught them that ⲧⲙⲛⲧⲙⲁⲓⲛⲟⲩⲧⲉ is the greatest virtue, leading to ⲡⲱⲛϩ ⲛϣⲁ ⲉⲛⲉϩ.
+      </p>
+    </div>
+
+    <!-- How to Embed Code Snippet -->
+    <div class="card">
+      <h2>💻 How to Embed on Any Website</h2>
+      <p style="font-size: 14px; color: var(--text-muted);">
+        Paste this 1-line script tag into your HTML <code>&lt;head&gt;</code> or before <code>&lt;/body&gt;</code>:
+      </p>
+      <pre><code>&lt;!-- 1. Include CoptoLex Word Tooltip Widget --&gt;
+&lt;script src="https://lexicon.copto.org/widget.js" data-theme="auto" data-audio="true" async&gt;&lt;/script&gt;
+
+&lt;!-- 2. Mark any Coptic words with class="coptic" or [data-coptic] --&gt;
+&lt;span class="coptic"&gt;ⲡⲛⲟⲩⲧⲉ&lt;/span&gt;</code></pre>
+    </div>
+  </div>
+
+  <script>
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme');
+      const next = current === 'light' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', next);
+      if (window.CoptoLexWidget) {
+        window.CoptoLexWidget.configure({ theme: next });
+      }
+    }
+
+    function setLang(l) {
+      if (window.CoptoLexWidget) {
+        window.CoptoLexWidget.configure({ lang: l });
+        alert('Widget language set to: ' + l.toUpperCase());
+      }
+    }
+  </script>
+</body>
+</html>

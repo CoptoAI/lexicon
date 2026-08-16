@@ -8,8 +8,11 @@ import { TermNetworkView } from './components/TermNetworkView';
 import { MorphologyAnalyzer } from './components/MorphologyAnalyzer';
 import { HowToModal } from './components/HowToModal';
 import { AboutModal } from './components/AboutModal';
+import { WidgetModal } from './components/WidgetModal';
 import { SearchFilters, DictionaryEntry, DatabaseStats } from './types/dictionary';
 import { fetchStats, searchDictionary, exportAnkiDeck } from './services/api';
+import { UI_STRINGS, UiLanguage } from './utils/i18n';
+import { isArabicText } from './utils/arabic';
 
 export const App: React.FC = () => {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
@@ -35,10 +38,20 @@ export const App: React.FC = () => {
   const [networkWord, setNetworkWord] = useState<string | null>(null);
   const [showHowTo, setShowHowTo] = useState<boolean>(false);
   const [showAbout, setShowAbout] = useState<boolean>(false);
+  const [showWidget, setShowWidget] = useState<boolean>(false);
+
+  // Compute UI Language (Arabic if lang is set to 'ar' or query is typed in Arabic)
+  const isArabicActive = filters.lang === 'ar' || (filters.lang === 'any' && isArabicText(filters.query));
+  const uiLang: UiLanguage = isArabicActive ? 'ar' : 'en';
+  const t = UI_STRINGS[uiLang];
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('dir', isArabicActive ? 'rtl' : 'ltr');
+  }, [isArabicActive]);
 
   useEffect(() => {
     fetchStats().then(setStats);
@@ -108,14 +121,16 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="app-container">
+    <div className={`app-container ${isArabicActive ? 'font-arabic' : ''}`}>
       <Header
         theme={theme}
         onToggleTheme={handleToggleTheme}
         stats={stats}
         onOpenHowTo={() => setShowHowTo(true)}
         onOpenAbout={() => setShowAbout(true)}
+        onOpenWidget={() => setShowWidget(true)}
         onResetSearch={handleResetSearch}
+        t={t}
       />
 
       <main>
@@ -128,6 +143,7 @@ export const App: React.FC = () => {
             phoneticMode={phoneticMode}
             onExportAnki={handleExportAnki}
             hasResults={entries.length > 0}
+            t={t}
           />
 
           {/* Morphological Grammar Dissector for polymorphemic queries */}
@@ -157,6 +173,7 @@ export const App: React.FC = () => {
             loading={loading}
             onSelectEntry={(entry) => setSelectedEntry(entry)}
             onViewNetwork={(word) => setNetworkWord(word)}
+            t={t}
           />
         </section>
       </main>
@@ -196,12 +213,24 @@ export const App: React.FC = () => {
         <AboutModal onClose={() => setShowAbout(false)} />
       )}
 
+      {/* Embed Widget Modal */}
+      {showWidget && (
+        <WidgetModal onClose={() => setShowWidget(false)} />
+      )}
+
       <footer className="site-footer">
         <div>
           <span>&copy; {new Date().getFullYear()} <strong>CoptoLex</strong> by <a href="https://copto.org" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-gold)' }}>Copto.org</a> &bull; BBAW &bull; DDGLC &bull; Coptic Scriptorium</span>
         </div>
         <div className="footer-links">
           <a href="https://copto.org" target="_blank" rel="noopener noreferrer">Copto.org</a>
+          <button
+            onClick={() => setShowWidget(true)}
+            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0, font: 'inherit', fontSize: '13px' }}
+          >
+            Embed Widget (&lt;script&gt;)
+          </button>
+          <a href="/widget-demo.html" target="_blank" rel="noopener noreferrer">Widget Demo</a>
           <a href="https://github.com/CoptoAI/lexicon" target="_blank" rel="noopener noreferrer">GitHub (CoptoAI)</a>
           <a href="https://copticscriptorium.org" target="_blank" rel="noopener noreferrer">Coptic Scriptorium</a>
           <a href="/llms.txt" target="_blank" rel="noopener noreferrer">LLMs.txt (AI)</a>

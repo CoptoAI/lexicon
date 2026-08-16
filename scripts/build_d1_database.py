@@ -14,6 +14,10 @@ import sys
 import unicodedata
 import glob
 
+# Ensure project root is in sys.path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils.arabic_lexicon import generate_arabic_senses, normalize_arabic
+
 def strip_diacritics(text: str) -> str:
     """Normalize Coptic text by removing supralinear strokes, macrons, jinkim, hyphens, and equal signs."""
     if not text:
@@ -232,7 +236,10 @@ def build_d1_database(base_dir: str, custom_src_db: str = None):
     lemma_ranks = {row[0]: row[1] for row in src_cur.fetchall()}
 
     if os.path.exists(target_db_path):
-        os.remove(target_db_path)
+        try:
+            os.remove(target_db_path)
+        except Exception:
+            pass
 
     tgt_con = sqlite3.connect(target_db_path)
     tgt_cur = tgt_con.cursor()
@@ -266,6 +273,7 @@ CREATE TABLE entries (
     de TEXT,
     en TEXT,
     fr TEXT,
+    ar TEXT,
     etym TEXT,
     ascii TEXT,
     search TEXT,
@@ -276,6 +284,7 @@ CREATE TABLE entries (
     en_json TEXT,
     de_json TEXT,
     fr_json TEXT,
+    ar_json TEXT,
     forms_json TEXT,
     egyptian_json TEXT,
     inflection_json TEXT,
@@ -357,6 +366,7 @@ CREATE VIRTUAL TABLE entries_fts USING fts5(
     en_text,
     de_text,
     fr_text,
+    ar_text,
     etym,
     pos,
     origin,
@@ -392,10 +402,13 @@ CREATE VIRTUAL TABLE entries_fts USING fts5(
         en_senses = parse_senses(en)
         de_senses = parse_senses(de)
         fr_senses = parse_senses(fr)
+        ar_senses = generate_arabic_senses(en_senses, de_senses, fr_senses, coptic_name, coptic_clean, pos or "")
 
         en_text = " ".join([s['definition'] for s in en_senses])
         de_text = " ".join([s['definition'] for s in de_senses])
         fr_text = " ".join([s['definition'] for s in fr_senses])
+        ar_text_raw = " ".join([s['definition'] for s in ar_senses])
+        ar_text_normalized = normalize_arabic(ar_text_raw)
 
         origin = determine_origin(etym, grk_id, pos)
         freq_rank = lemma_ranks.get(coptic_name, lemma_ranks.get(coptic_clean, 99999))
@@ -421,6 +434,7 @@ CREATE VIRTUAL TABLE entries_fts USING fts5(
             de,
             en,
             fr,
+            ar_text_raw,
             etym or "",
             ascii_code or "",
             search or "",
@@ -431,6 +445,7 @@ CREATE VIRTUAL TABLE entries_fts USING fts5(
             json.dumps(en_senses, ensure_ascii=False),
             json.dumps(de_senses, ensure_ascii=False),
             json.dumps(fr_senses, ensure_ascii=False),
+            json.dumps(ar_senses, ensure_ascii=False) if ar_senses else "",
             json.dumps(forms, ensure_ascii=False),
             json.dumps(egy_obj, ensure_ascii=False) if egy_obj else "",
             json.dumps(inflection_obj, ensure_ascii=False) if inflection_obj else "",
@@ -444,6 +459,7 @@ CREATE VIRTUAL TABLE entries_fts USING fts5(
             en_text,
             de_text,
             fr_text,
+            ar_text_normalized,
             etym or "",
             pos or "",
             origin
@@ -452,14 +468,14 @@ CREATE VIRTUAL TABLE entries_fts USING fts5(
     tgt_cur.executemany("""
         INSERT INTO entries (
             id, super_ref, name, coptic_name, coptic_clean, pos, origin, freq_rank, ipa_sahidic, ipa_bohairic,
-            de, en, fr, etym, ascii, search, oref, grk_id, xml_id, dialects,
-            en_json, de_json, fr_json, forms_json, egyptian_json, inflection_json, citations_json
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            de, en, fr, ar, etym, ascii, search, oref, grk_id, xml_id, dialects,
+            en_json, de_json, fr_json, ar_json, forms_json, egyptian_json, inflection_json, citations_json
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, entries_to_insert)
 
     tgt_cur.executemany("""
-        INSERT INTO entries_fts (id, coptic_name, coptic_clean, en_text, de_text, fr_text, etym, pos, origin)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO entries_fts (id, coptic_name, coptic_clean, en_text, de_text, fr_text, ar_text, etym, pos, origin)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, fts_to_insert)
 
     print(f"Migrated {len(entries_to_insert)} enriched entries + FTS5 rows.")

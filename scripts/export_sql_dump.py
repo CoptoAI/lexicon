@@ -58,6 +58,7 @@ def generate_d1_export():
     de TEXT,
     en TEXT,
     fr TEXT,
+    ar TEXT,
     etym TEXT,
     ascii TEXT,
     search TEXT,
@@ -68,6 +69,7 @@ def generate_d1_export():
     en_json TEXT,
     de_json TEXT,
     fr_json TEXT,
+    ar_json TEXT,
     forms_json TEXT,
     egyptian_json TEXT,
     inflection_json TEXT,
@@ -149,6 +151,7 @@ CREATE VIRTUAL TABLE entries_fts USING fts5(
     en_text,
     de_text,
     fr_text,
+    ar_text,
     etym,
     pos,
     origin,
@@ -158,7 +161,7 @@ CREATE VIRTUAL TABLE entries_fts USING fts5(
 
         # 3. Export entries (batch of 10)
         print("Exporting entries...")
-        cur.execute("SELECT id, super_ref, name, coptic_name, coptic_clean, pos, origin, freq_rank, ipa_sahidic, ipa_bohairic, de, en, fr, etym, ascii, search, oref, grk_id, xml_id, dialects, en_json, de_json, fr_json, forms_json, egyptian_json, inflection_json, citations_json FROM entries ORDER BY id")
+        cur.execute("SELECT id, super_ref, name, coptic_name, coptic_clean, pos, origin, freq_rank, ipa_sahidic, ipa_bohairic, de, en, fr, ar, etym, ascii, search, oref, grk_id, xml_id, dialects, en_json, de_json, fr_json, ar_json, forms_json, egyptian_json, inflection_json, citations_json FROM entries ORDER BY id")
         entries = cur.fetchall()
         for i in range(0, len(entries), 10):
             batch = entries[i:i+10]
@@ -212,7 +215,7 @@ CREATE VIRTUAL TABLE entries_fts USING fts5(
 
         # 9. Populate entries_fts via server-side SELECT query
         f.write("\n-- Populate Trigram FTS5 index from entries\n")
-        f.write("INSERT INTO entries_fts(id, coptic_name, coptic_clean, en_text, de_text, fr_text, etym, pos, origin) SELECT id, coptic_name, coptic_clean, en, de, fr, etym, pos, origin FROM entries;\n")
+        f.write("INSERT INTO entries_fts(id, coptic_name, coptic_clean, en_text, de_text, fr_text, ar_text, etym, pos, origin) SELECT id, coptic_name, coptic_clean, en, de, fr, ar, etym, pos, origin FROM entries;\n")
 
     con.close()
     file_size_mb = os.path.getsize(dump_file) / (1024 * 1024)

@@ -59,16 +59,26 @@ const registerRoutes = (prefix: string = '') => {
 
       let sql = '';
       if (q) {
-        const cleanQ = q.replace(/[\'\"\*\^]/g, '').trim();
+        const isArabic = /[\u0600-\u06FF\u0750-\u077F]/.test(q);
+        let cleanQ = q.replace(/[\'\"\*\^]/g, '').trim();
+        if (isArabic) {
+          cleanQ = cleanQ
+            .replace(/[\u064B-\u065F\u0670\u0640]/g, '')
+            .replace(/[أإآٱ]/g, 'ا')
+            .replace(/ى/g, 'ي')
+            .replace(/ة/g, 'ه');
+        }
+
         let ftsTarget = '';
-        if (lang === 'en') ftsTarget = `en_text:${cleanQ}*`;
+        if (lang === 'ar' || isArabic) ftsTarget = `ar_text:"${cleanQ}"*`;
+        else if (lang === 'en') ftsTarget = `en_text:${cleanQ}*`;
         else if (lang === 'de') ftsTarget = `de_text:${cleanQ}*`;
         else if (lang === 'fr') ftsTarget = `fr_text:${cleanQ}*`;
         else ftsTarget = `"${cleanQ}"*`;
 
         if (conditions.length > 0) {
           sql = `
-            SELECT e.id, e.coptic_name, e.pos, e.origin, e.freq_rank, e.ipa_sahidic, e.ipa_bohairic, e.dialects, e.en_json, e.de_json, e.fr_json, e.egyptian_json, e.inflection_json, e.citations_json, e.etym, e.xml_id, e.ascii
+            SELECT e.id, e.coptic_name, e.pos, e.origin, e.freq_rank, e.ipa_sahidic, e.ipa_bohairic, e.dialects, e.en_json, e.de_json, e.fr_json, e.ar_json, e.egyptian_json, e.inflection_json, e.citations_json, e.etym, e.xml_id, e.ascii
             FROM entries_fts f
             JOIN entries e ON e.id = f.id
             WHERE entries_fts MATCH ? AND ${conditions.join(' AND ')}
@@ -79,7 +89,7 @@ const registerRoutes = (prefix: string = '') => {
           params.push(limit);
         } else {
           sql = `
-            SELECT e.id, e.coptic_name, e.pos, e.origin, e.freq_rank, e.ipa_sahidic, e.ipa_bohairic, e.dialects, e.en_json, e.de_json, e.fr_json, e.egyptian_json, e.inflection_json, e.citations_json, e.etym, e.xml_id, e.ascii
+            SELECT e.id, e.coptic_name, e.pos, e.origin, e.freq_rank, e.ipa_sahidic, e.ipa_bohairic, e.dialects, e.en_json, e.de_json, e.fr_json, e.ar_json, e.egyptian_json, e.inflection_json, e.citations_json, e.etym, e.xml_id, e.ascii
             FROM entries_fts f
             JOIN entries e ON e.id = f.id
             WHERE entries_fts MATCH ?
@@ -91,7 +101,7 @@ const registerRoutes = (prefix: string = '') => {
       } else {
         const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
         sql = `
-          SELECT e.id, e.coptic_name, e.pos, e.origin, e.freq_rank, e.ipa_sahidic, e.ipa_bohairic, e.dialects, e.en_json, e.de_json, e.fr_json, e.egyptian_json, e.inflection_json, e.citations_json, e.etym, e.xml_id, e.ascii
+          SELECT e.id, e.coptic_name, e.pos, e.origin, e.freq_rank, e.ipa_sahidic, e.ipa_bohairic, e.dialects, e.en_json, e.de_json, e.fr_json, e.ar_json, e.egyptian_json, e.inflection_json, e.citations_json, e.etym, e.xml_id, e.ascii
           FROM entries e
           ${whereClause}
           ${orderBy}
@@ -106,14 +116,14 @@ const registerRoutes = (prefix: string = '') => {
         return c.json({ results, count: results.length });
       } catch (ftsError) {
         const fallbackSql = `
-          SELECT e.id, e.coptic_name, e.pos, e.origin, e.freq_rank, e.ipa_sahidic, e.ipa_bohairic, e.dialects, e.en_json, e.de_json, e.fr_json, e.egyptian_json, e.inflection_json, e.citations_json, e.etym, e.xml_id
+          SELECT e.id, e.coptic_name, e.pos, e.origin, e.freq_rank, e.ipa_sahidic, e.ipa_bohairic, e.dialects, e.en_json, e.de_json, e.fr_json, e.ar_json, e.egyptian_json, e.inflection_json, e.citations_json, e.etym, e.xml_id
           FROM entries e
-          WHERE (e.coptic_name LIKE ? OR e.en LIKE ? OR e.de LIKE ? OR e.fr LIKE ?)
+          WHERE (e.coptic_name LIKE ? OR e.en LIKE ? OR e.de LIKE ? OR e.fr LIKE ? OR e.ar LIKE ?)
           ${orderBy}
           LIMIT ?
         `;
         const likeParam = `%${q}%`;
-        const { results } = await c.env.DB.prepare(fallbackSql).bind(likeParam, likeParam, likeParam, likeParam, limit).all();
+        const { results } = await c.env.DB.prepare(fallbackSql).bind(likeParam, likeParam, likeParam, likeParam, likeParam, limit).all();
         return c.json({ results, count: results.length });
       }
     } catch (err: any) {
@@ -205,6 +215,193 @@ const registerRoutes = (prefix: string = '') => {
       `).bind(`${cleanQ}%`, `${cleanQ}%`).all<{ coptic_name: string; pos: string; xml_id: string }>();
 
       return c.json({ suggestions: results });
+    } catch (err: any) {
+      return c.json({ error: err.message }, 500);
+    }
+  });
+  // CORS Preflight
+  app.options('*', (c) => {
+    c.header('Access-Control-Allow-Origin', '*');
+    c.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    c.header('Access-Control-Allow-Headers', 'Content-Type');
+    return c.body(null, 204);
+  });
+
+  // Widget instant word lookup with morphological fallback
+  app.get(`${prefix}/widget/lookup`, async (c) => {
+    c.header('Access-Control-Allow-Origin', '*');
+    c.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    c.header('Cache-Control', 'public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400');
+
+    const rawWord = c.req.query('word')?.trim() || '';
+    const lang = c.req.query('lang') || 'en';
+
+    if (!rawWord) {
+      return c.json({ error: 'Missing word parameter' }, 400);
+    }
+
+    // Clean diacritics and punctuation
+    const cleanWord = rawWord
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f\ufe20-\ufe2f\u02bc\u02bd`\'\-\=⸗·\*\.\?\[\]\(\)]/g, '')
+      .normalize('NFC')
+      .trim()
+      .toLowerCase();
+
+    // Generate morphological stem candidates
+    const candidates: string[] = [cleanWord];
+
+    // Common Coptic prefixes (articles, prepositions, converters, tense bases)
+    const prefixes = [
+      'ⲡⲉⲧⲉ', 'ⲧⲉⲧⲉ', 'ⲛⲉⲧⲉ', 'ⲡⲉⲧ', 'ⲧⲉⲧ', 'ⲛⲉⲧ', 'ⲉⲧⲉ', 'ⲉⲧ',
+      'ⲛⲧⲁⲣⲉ', 'ⲙⲡⲁⲧⲉ', 'ϣⲁⲣⲉ', 'ⲙⲉⲣⲉ', 'ⲛⲛⲉ', 'ⲉⲣⲉ', 'ⲛⲧⲁ', 'ⲙⲡⲉ',
+      'ⲛⲉϥ', 'ⲛⲉⲥ', 'ⲛⲉⲩ', 'ⲛⲉⲕ', 'ⲛⲉⲛ', 'ⲛⲉⲓ',
+      'ⲡⲉϥ', 'ⲧⲉϥ', 'ⲡⲉⲕ', 'ⲧⲉⲕ', 'ⲡⲟⲩ', 'ⲧⲟⲩ', 'ⲛⲟⲩ', 'ⲡⲉⲥ', 'ⲧⲉⲥ', 'ⲡⲉⲛ', 'ⲧⲉⲛ', 'ⲡⲉⲩ', 'ⲧⲉⲩ',
+      'ⲡⲁ', 'ⲧⲁ', 'ⲛⲁ', 'ⲡⲓ', 'ϯ', 'ⲛⲓ', 'ⲡⲉ', 'ⲧⲉ', 'ⲛⲉ',
+      'ⲁϥ', 'ⲁⲥ', 'ⲁⲩ', 'ⲁⲓ', 'ⲁⲕ', 'ⲁⲛ',
+      'ϩⲉⲛ', 'ⲟⲩ', 'ϩⲛ', 'ϩⲓ', 'ⲙⲛ', 'ⲉⲃⲟⲗ',
+      'ⲡ', 'ⲧ', 'ⲛ', 'ⲉ', 'ⲁ'
+    ];
+
+    for (const p of prefixes) {
+      if (cleanWord.startsWith(p) && cleanWord.length - p.length >= 2) {
+        const stem = cleanWord.slice(p.length);
+        candidates.push(stem);
+        // Also check if stem has an attached ending like -ⲉ
+        if (stem.endsWith('ⲉ') && stem.length >= 3) {
+          candidates.push(stem.slice(0, -1));
+        }
+      }
+    }
+
+    // Common pronominal suffixes
+    const suffixes = ['ⲧⲏⲩⲧⲛ', 'ⲟⲩ', 'ϥ', 'ⲥ', 'ⲕ', 'ⲧⲉ', 'ⲧ', 'ⲓ', 'ⲛ', 'ⲉ'];
+    for (const s of suffixes) {
+      if (cleanWord.endsWith(s) && cleanWord.length - s.length >= 2) {
+        candidates.push(cleanWord.slice(0, -s.length));
+      }
+    }
+
+    try {
+      let matchedEntry: any = null;
+      let matchedStem = cleanWord;
+
+      // 1. Try candidates in order
+      for (const cand of candidates) {
+        const row = await c.env.DB.prepare(`
+          SELECT id, coptic_name, pos, origin, freq_rank, ipa_sahidic, ipa_bohairic, dialects, en_json, de_json, fr_json, ar_json, egyptian_json, etym, xml_id
+          FROM entries
+          WHERE coptic_clean = ? OR coptic_name = ?
+          ORDER BY freq_rank ASC, id ASC
+          LIMIT 1
+        `).bind(cand, cand).first();
+
+        if (row) {
+          matchedEntry = row;
+          matchedStem = cand;
+          break;
+        }
+      }
+
+      // 2. Fallback: Prefix / LIKE match
+      if (!matchedEntry) {
+        const fallbackRow = await c.env.DB.prepare(`
+          SELECT id, coptic_name, pos, origin, freq_rank, ipa_sahidic, ipa_bohairic, dialects, en_json, de_json, fr_json, ar_json, egyptian_json, etym, xml_id
+          FROM entries
+          WHERE coptic_clean LIKE ? OR coptic_name LIKE ?
+          ORDER BY freq_rank ASC, id ASC
+          LIMIT 1
+        `).bind(`${cleanWord}%`, `${cleanWord}%`).first();
+
+        if (fallbackRow) {
+          matchedEntry = fallbackRow;
+          matchedStem = cleanWord;
+        }
+      }
+
+      if (!matchedEntry) {
+        return c.json({
+          found: false,
+          query: rawWord,
+          clean: cleanWord
+        }, 404);
+      }
+
+      // Extract primary definitions
+      let enDef = '';
+      let deDef = '';
+      let frDef = '';
+      let arDef = '';
+
+      if (matchedEntry.en_json) {
+        try {
+          const parsed = JSON.parse(matchedEntry.en_json);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            enDef = parsed[0].definition || '';
+          }
+        } catch (e) {}
+      }
+
+      if (matchedEntry.de_json) {
+        try {
+          const parsed = JSON.parse(matchedEntry.de_json);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            deDef = parsed[0].definition || '';
+          }
+        } catch (e) {}
+      }
+
+      if (matchedEntry.fr_json) {
+        try {
+          const parsed = JSON.parse(matchedEntry.fr_json);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            frDef = parsed[0].definition || '';
+          }
+        } catch (e) {}
+      }
+
+      if (matchedEntry.ar_json) {
+        try {
+          const parsed = JSON.parse(matchedEntry.ar_json);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            arDef = parsed[0].definition || '';
+          }
+        } catch (e) {}
+      }
+
+      const dialectsList = matchedEntry.dialects
+        ? matchedEntry.dialects.split(',').map((d: string) => d.trim()).filter(Boolean)
+        : [];
+
+      // Determine best definition for requested language
+      let primaryDef = enDef;
+      if (lang === 'ar' && arDef) primaryDef = arDef;
+      else if (lang === 'de' && deDef) primaryDef = deDef;
+      else if (lang === 'fr' && frDef) primaryDef = frDef;
+      else if (!primaryDef) primaryDef = arDef || deDef || frDef || '';
+
+      return c.json({
+        found: true,
+        id: matchedEntry.id,
+        xml_id: matchedEntry.xml_id,
+        coptic_name: matchedEntry.coptic_name,
+        pos: matchedEntry.pos,
+        origin: matchedEntry.origin,
+        dialects: dialectsList,
+        freq_rank: matchedEntry.freq_rank,
+        ipa: matchedEntry.ipa_sahidic || matchedEntry.ipa_bohairic || '',
+        ipa_sahidic: matchedEntry.ipa_sahidic || '',
+        ipa_bohairic: matchedEntry.ipa_bohairic || '',
+        definition: primaryDef,
+        en_definition: enDef,
+        de_definition: deDef,
+        fr_definition: frDef,
+        ar_definition: arDef,
+        etym: matchedEntry.etym ? matchedEntry.etym.replace(/#/g, '') : null,
+        url: `https://lexicon.copto.org/?q=${encodeURIComponent(matchedEntry.coptic_name)}`,
+        matched_stem: matchedStem,
+        original_query: rawWord
+      });
     } catch (err: any) {
       return c.json({ error: err.message }, 500);
     }

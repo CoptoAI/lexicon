@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "python scripts/generate_sitemap.py && tsc && vite build",
+    "build:widget": "vite build --config vite.widget.config.ts",
+    "build": "npm run build:widget && python scripts/generate_sitemap.py && tsc && vite build",
     "preview": "vite preview",
     "pages:dev": "wrangler pages dev dist --compatibility-date=2024-11-01 --d1=DB=coptic-dict",
     "deploy": "npm run build && wrangler pages deploy dist --branch=main --commit-dirty=true",

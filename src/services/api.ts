@@ -64,10 +64,18 @@ export function exportAnkiDeck(entries: DictionaryEntry[], filename = 'coptic_an
   if (!entries || entries.length === 0) return;
 
   const rows: string[] = [
-    ['Coptic Word', 'IPA Pronunciation', 'Part of Speech', 'Dialects', 'English Definition', 'German Definition', 'Etymology / Root', 'Entry ID'].map(csvEscape).join('\t')
+    ['Coptic Word', 'IPA Pronunciation', 'Part of Speech', 'Dialects', 'Arabic Definition', 'English Definition', 'German Definition', 'Etymology / Root', 'Entry ID'].map(csvEscape).join('\t')
   ];
 
   for (const e of entries) {
+    let arDef = '';
+    if (e.ar_json) {
+      try {
+        const p = JSON.parse(e.ar_json);
+        if (Array.isArray(p)) arDef = p.map((s, i) => `${i + 1}. ${s.definition}`).join('; ');
+      } catch (err) {}
+    }
+
     let enDef = '';
     if (e.en_json) {
       try {
@@ -89,6 +97,7 @@ export function exportAnkiDeck(entries: DictionaryEntry[], filename = 'coptic_an
       e.ipa_sahidic || '',
       e.pos || '',
       e.dialects || '',
+      arDef,
       enDef,
       deDef,
       e.etym || '',

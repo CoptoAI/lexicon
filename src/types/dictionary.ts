@@ -56,6 +56,7 @@ export interface DictionaryEntry {
   en_json?: string;
   de_json?: string;
   fr_json?: string;
+  ar_json?: string;
   forms_json?: string;
   egyptian_json?: string;
   inflection_json?: string;
@@ -69,6 +70,7 @@ export interface DictionaryEntry {
   parsed_en?: Sense[];
   parsed_de?: Sense[];
   parsed_fr?: Sense[];
+  parsed_ar?: Sense[];
   parsed_forms?: FormItem[];
   parsed_egyptian?: EgyptianEtymology;
   parsed_inflection?: InflectionParadigm;
@@ -79,7 +81,7 @@ export interface SearchFilters {
   query: string;
   dialect: string;
   pos: string;
-  lang: string;
+  lang: 'any' | 'en' | 'de' | 'fr' | 'ar' | string;
   origin?: 'all' | 'egyptian' | 'greek';
   sortBy?: 'alpha' | 'freq';
 }

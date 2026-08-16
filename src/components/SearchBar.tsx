@@ -2,6 +2,7 @@ import React from 'react';
 import { Search, Keyboard, X, Download, Flame, ArrowDownAZ } from 'lucide-react';
 import { SearchFilters } from '../types/dictionary';
 import { POS_DESCRIPTIONS, convertLatinToCoptic } from '../utils/coptic';
+import { UiTranslations } from '../utils/i18n';
 
 interface SearchBarProps {
   filters: SearchFilters;
@@ -11,6 +12,7 @@ interface SearchBarProps {
   phoneticMode: boolean;
   onExportAnki: () => void;
   hasResults: boolean;
+  t: UiTranslations;
 }
 
 const DIALECT_OPTIONS = [
@@ -31,7 +33,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   onToggleKeyboard,
   phoneticMode,
   onExportAnki,
-  hasResults
+  hasResults,
+  t
 }) => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let val = e.target.value;
@@ -48,7 +51,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         <input
           type="text"
           className="search-input"
-          placeholder="Search Coptic word (e.g. ⲛⲟⲩⲧⲉ, ⲁⲅⲁⲡⲏ), English/German/French definition, or POS..."
+          placeholder={t.searchPlaceholder}
           value={filters.query}
           onChange={handleInputChange}
           autoFocus
@@ -56,7 +59,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 
         <div className="search-input-actions">
           {filters.query && (
-            <button className="btn-clear" onClick={() => onChangeFilters({ query: '' })} title="Clear search">
+            <button className="btn-clear" onClick={() => onChangeFilters({ query: '' })} title={t.clearSearch}>
               <X size={18} />
             </button>
           )}
@@ -64,10 +67,10 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           <button
             className={`btn-keyboard-toggle ${showKeyboard ? 'active' : ''}`}
             onClick={onToggleKeyboard}
-            title="Toggle Coptic Virtual Keyboard"
+            title={t.keyboard}
           >
             <Keyboard size={16} />
-            <span>Keyboard</span>
+            <span>{t.keyboard}</span>
           </button>
         </div>
       </div>
@@ -75,34 +78,34 @@ export const SearchBar: React.FC<SearchBarProps> = ({
       {/* Origin Filter and Sort Row */}
       <div className="filter-row" style={{ justifyContent: 'space-between' }}>
         <div className="filter-group">
-          <span className="filter-label">Origin:</span>
+          <span className="filter-label">{t.originLabel}</span>
           <div className="dialect-pills">
             <button
               className={`dialect-pill ${filters.origin === 'all' ? 'active' : ''}`}
               onClick={() => onChangeFilters({ origin: 'all' })}
             >
-              All Lexicon (11,272)
+              {t.allLexicon}
             </button>
             <button
               className={`dialect-pill ${filters.origin === 'egyptian' ? 'active' : ''}`}
               onClick={() => onChangeFilters({ origin: 'egyptian' })}
               title="Etymologically Egyptian Heritage words (BBAW)"
             >
-              🏺 Egyptian Roots
+              {t.egyptianRoots}
             </button>
             <button
               className={`dialect-pill ${filters.origin === 'greek' ? 'active' : ''}`}
               onClick={() => onChangeFilters({ origin: 'greek' })}
               title="Greek Loanwords in Coptic (DDGLC)"
             >
-              🏛️ Greek Loanwords
+              {t.greekLoanwords}
             </button>
           </div>
         </div>
 
         {/* Sort and Anki Export */}
         <div className="filter-group" style={{ marginLeft: 'auto' }}>
-          <span className="filter-label">Sort:</span>
+          <span className="filter-label">{t.sortLabel}</span>
           <button
             className={`btn-nav ${filters.sortBy === 'alpha' ? 'active' : ''}`}
             style={{ padding: '4px 10px', fontSize: '12px' }}
@@ -110,7 +113,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
             title="Sort Alphabetically"
           >
             <ArrowDownAZ size={14} />
-            <span>A-Z</span>
+            <span>{t.sortAlpha}</span>
           </button>
           <button
             className={`btn-nav ${filters.sortBy === 'freq' ? 'active' : ''}`}
@@ -119,7 +122,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
             title="Sort by Corpus Frequency"
           >
             <Flame size={14} color="var(--accent-amber)" />
-            <span>Frequency</span>
+            <span>{t.sortFreq}</span>
           </button>
 
           {hasResults && (
@@ -130,7 +133,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
               title="Export filtered words to Anki Flashcard CSV deck"
             >
               <Download size={14} color="var(--accent-gold)" />
-              <span>Anki Deck</span>
+              <span>{t.exportAnki}</span>
             </button>
           )}
         </div>
@@ -139,7 +142,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
       {/* Dialect Filter Row */}
       <div className="filter-row">
         <div className="filter-group">
-          <span className="filter-label">Dialect:</span>
+          <span className="filter-label">{t.dialectLabel}</span>
           <div className="dialect-pills">
             {DIALECT_OPTIONS.map((d) => (
               <button
@@ -147,7 +150,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                 className={`dialect-pill ${filters.dialect === d.code ? 'active' : ''}`}
                 onClick={() => onChangeFilters({ dialect: d.code })}
               >
-                {d.label}
+                {d.code === 'any' ? t.allDialects : d.label}
               </button>
             ))}
           </div>
@@ -157,13 +160,13 @@ export const SearchBar: React.FC<SearchBarProps> = ({
       {/* POS and Language Selectors */}
       <div className="filter-row" style={{ justifyContent: 'space-between' }}>
         <div className="filter-group">
-          <span className="filter-label">Part of Speech:</span>
+          <span className="filter-label">{t.posLabel}</span>
           <select
             className="filter-select"
             value={filters.pos}
             onChange={(e) => onChangeFilters({ pos: e.target.value })}
           >
-            <option value="any">Any POS Tag</option>
+            <option value="any">{t.anyPos}</option>
             {Object.entries(POS_DESCRIPTIONS).map(([tag, desc]) => (
               <option key={tag} value={tag}>
                 {tag} – {desc}
@@ -173,16 +176,17 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         </div>
 
         <div className="filter-group">
-          <span className="filter-label">Definition Language:</span>
+          <span className="filter-label">{t.langLabel}</span>
           <select
             className="filter-select"
             value={filters.lang}
             onChange={(e) => onChangeFilters({ lang: e.target.value as any })}
           >
-            <option value="any">Any / All Languages</option>
-            <option value="en">English only</option>
-            <option value="de">German only (Deutsch)</option>
-            <option value="fr">French only (Français)</option>
+            <option value="any">{t.langAny}</option>
+            <option value="ar">{t.langAr}</option>
+            <option value="en">{t.langEn}</option>
+            <option value="de">{t.langDe}</option>
+            <option value="fr">{t.langFr}</option>
           </select>
         </div>
       </div>

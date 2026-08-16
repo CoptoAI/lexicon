@@ -3,6 +3,9 @@ import { DictionaryEntry, Sense, FormItem, EgyptianEtymology, InflectionParadigm
 import { DIALECT_DESCRIPTIONS, POS_DESCRIPTIONS } from '../utils/coptic';
 import { playSynthesizedCoptic } from '../utils/audio';
 import { exportAnkiDeck } from '../services/api';
+import { RichEtymology } from '../utils/richText';
+import { ConcordanceViewer } from './ConcordanceViewer';
+import { getConcordanceExamples } from '../services/concordance';
 import { X, Copy, Check, ExternalLink, Share2, Sparkles, BookOpen, Volume2, Download, Quote, ScrollText, Grid } from 'lucide-react';
 
 interface EntryDetailModalProps {
@@ -21,7 +24,7 @@ export const EntryDetailModal: React.FC<EntryDetailModalProps> = ({
   const [copied, setCopied] = useState<string | null>(null);
   const [activeDialectIpa, setActiveDialectIpa] = useState<'S' | 'B'>('S');
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
-  const [activeTab, setActiveTab] = useState<'details' | 'dialects'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'dialects' | 'concordance'>('details');
 
   if (!entry) return null;
 
@@ -37,10 +40,12 @@ export const EntryDetailModal: React.FC<EntryDetailModalProps> = ({
   const enSenses = parseJsonSafe<Sense[]>(entry.en_json, []) || [];
   const deSenses = parseJsonSafe<Sense[]>(entry.de_json, []) || [];
   const frSenses = parseJsonSafe<Sense[]>(entry.fr_json, []) || [];
+  const arSenses = parseJsonSafe<Sense[]>(entry.ar_json, []) || [];
   const forms = parseJsonSafe<FormItem[]>(entry.forms_json, []) || [];
   const egyptianRoot = parseJsonSafe<EgyptianEtymology>(entry.egyptian_json, null);
   const inflectionParadigm = parseJsonSafe<InflectionParadigm>(entry.inflection_json, null);
   const citations = parseJsonSafe<ManuscriptCitation[]>(entry.citations_json, []) || [];
+  const concordanceExamples = getConcordanceExamples(entry.coptic_name);
 
   const handleCopy = (text: string, type: string) => {
     navigator.clipboard.writeText(text);
@@ -175,7 +180,7 @@ export const EntryDetailModal: React.FC<EntryDetailModalProps> = ({
         </div>
 
         {/* View Toggle Tabs */}
-        <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '8px' }}>
+        <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '8px', flexWrap: 'wrap' }}>
           <button
             className={`btn-nav ${activeTab === 'details' ? 'active' : ''}`}
             onClick={() => setActiveTab('details')}
@@ -188,11 +193,25 @@ export const EntryDetailModal: React.FC<EntryDetailModalProps> = ({
             onClick={() => setActiveTab('dialects')}
           >
             <Grid size={14} />
-            <span>Dialect Comparison Matrix</span>
+            <span>Dialect Matrix</span>
+          </button>
+          <button
+            className={`btn-nav ${activeTab === 'concordance' ? 'active' : ''}`}
+            onClick={() => setActiveTab('concordance')}
+          >
+            <ScrollText size={14} />
+            <span>Manuscript Concordance</span>
+            {concordanceExamples.length > 0 && (
+              <span className="concordance-badge-count" style={{ marginLeft: '4px' }}>
+                {concordanceExamples.length}
+              </span>
+            )}
           </button>
         </div>
 
-        {activeTab === 'dialects' ? (
+        {activeTab === 'concordance' ? (
+          <ConcordanceViewer coptic_name={entry.coptic_name} xml_id={entry.xml_id} />
+        ) : activeTab === 'dialects' ? (
           /* Multi-Dialect Comparison Matrix View */
           <div style={{ background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '18px 20px' }}>
             <h3 style={{ fontSize: '15px', color: 'var(--accent-gold)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -377,6 +396,30 @@ export const EntryDetailModal: React.FC<EntryDetailModalProps> = ({
             <div>
               <div className="detail-section-title">Definitions &amp; Lexicon Senses</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {/* Arabic Definitions (العربية) */}
+                {arSenses.length > 0 && (
+                  <div style={{ background: 'var(--bg-surface-elevated)', padding: '14px 18px', borderRadius: 'var(--radius-sm)', borderRight: '4px solid var(--accent-teal)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <strong style={{ color: 'var(--accent-teal)', fontSize: '13px', fontFamily: 'var(--font-arabic)', direction: 'rtl' }}>
+                        العربية (Arabic):
+                      </strong>
+                      <span className="arabic-badge">القاموس القبطي</span>
+                    </div>
+                    <ol className="text-rtl" style={{ paddingRight: '22px', marginTop: '6px', fontSize: '15px', lineHeight: '1.75' }}>
+                      {arSenses.map((s, i) => (
+                        <li key={i} style={{ marginBottom: '6px' }}>
+                          <span>{s.definition}</span>
+                          {s.citations?.length > 0 && (
+                            <span style={{ color: 'var(--text-muted)', fontSize: '12px', marginRight: '8px', direction: 'ltr', display: 'inline-block' }}>
+                              [{s.citations.join('; ')}]
+                            </span>
+                          )}
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
+
                 {enSenses.length > 0 && (
                   <div style={{ background: 'var(--bg-surface-elevated)', padding: '12px 16px', borderRadius: 'var(--radius-sm)' }}>
                     <strong style={{ color: 'var(--accent-blue)', fontSize: '12px', textTransform: 'uppercase' }}>English:</strong>
@@ -432,6 +475,34 @@ export const EntryDetailModal: React.FC<EntryDetailModalProps> = ({
                 )}
               </div>
             </div>
+
+            {/* Inline Manuscript Concordance Preview */}
+            {concordanceExamples.length > 0 && (
+              <div className="concordance-inline-preview">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <ScrollText size={16} color="var(--accent-gold)" />
+                    <span style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text-primary)' }}>
+                      Attested in {concordanceExamples.length} Biblical &amp; Patristic Manuscript Passages
+                    </span>
+                  </div>
+                  <button
+                    className="btn-nav"
+                    style={{ padding: '3px 10px', fontSize: '12px', color: 'var(--accent-gold)', borderColor: 'var(--border-gold)' }}
+                    onClick={() => setActiveTab('concordance')}
+                  >
+                    <span>Explore Parallel Concordance ({concordanceExamples.length})</span>
+                    <ExternalLink size={12} />
+                  </button>
+                </div>
+                <div style={{ fontStyle: 'italic', fontSize: '13px', color: 'var(--text-secondary)', background: 'var(--bg-surface)', padding: '8px 12px', borderRadius: '4px', border: '1px solid var(--border-subtle)', lineHeight: 1.5 }}>
+                  <span style={{ fontFamily: 'var(--font-coptic)', color: 'var(--text-coptic)', fontStyle: 'normal', fontSize: '15px', marginRight: '8px' }}>
+                    {concordanceExamples[0].coptic_text}
+                  </span>
+                  <span style={{ color: 'var(--accent-gold)', fontWeight: 600 }}>— {concordanceExamples[0].reference}</span>
+                </div>
+              </div>
+            )}
 
             {/* Manuscript Citations from Coptic Scriptorium */}
             {citations.length > 0 && (
@@ -537,27 +608,11 @@ export const EntryDetailModal: React.FC<EntryDetailModalProps> = ({
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
                       <Sparkles size={16} color="var(--accent-gold)" style={{ marginTop: '2px', flexShrink: 0 }} />
                       <div>
-                        <strong>Cross-references: </strong>
-                        <span>
-                          {entry.etym.split('#').map((part, i) => {
-                            if (i % 2 === 1) {
-                              return (
-                                <span
-                                  key={i}
-                                  style={{ color: 'var(--accent-gold)', cursor: 'pointer', textDecoration: 'underline', margin: '0 2px', fontFamily: 'var(--font-coptic)', fontSize: '15px' }}
-                                  onClick={() => {
-                                    onClose();
-                                    onSearchWord(part);
-                                  }}
-                                  title={`Search for related word "${part}"`}
-                                >
-                                  {part}
-                                </span>
-                              );
-                            }
-                            return <span key={i}>{part}</span>;
-                          })}
-                        </span>
+                        <strong style={{ marginRight: '6px' }}>Cross-references:</strong>
+                        <RichEtymology etym={entry.etym} onSearchWord={(word) => {
+                          onClose();
+                          onSearchWord(word);
+                        }} />
                       </div>
                     </div>
                   )}
