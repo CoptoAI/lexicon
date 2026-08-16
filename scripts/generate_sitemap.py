@@ -8,7 +8,7 @@ Extracts lemma entries and generates valid XML sitemap for search engines.
 import sqlite3
 import os
 import urllib.parse
-from datetime import datetime
+from datetime import datetime, timezone
 
 def generate_sitemap():
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -17,7 +17,7 @@ def generate_sitemap():
     os.makedirs(public_dir, exist_ok=True)
     sitemap_path = os.path.join(public_dir, 'sitemap.xml')
 
-    today = datetime.utcnow().strftime('%Y-%m-%d')
+    today = datetime.now(timezone.utc).strftime('%Y-%m-%d')
     base_url = "https://lexicon.copto.org"
 
     urls = [

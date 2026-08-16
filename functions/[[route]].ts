@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { handle } from 'hono/cloudflare-pages';
 
 type Bindings = {
   DB: D1Database;
@@ -208,11 +209,5 @@ app.get('/api/suggest', async (c) => {
   }
 });
 
-// Cloudflare Pages Function entrypoint
-export const onRequest: PagesFunction<Bindings> = async (context) => {
-  const url = new URL(context.request.url);
-  if (url.pathname.startsWith('/api')) {
-    return app.fetch(context.request, context.env, context);
-  }
-  return context.next();
-};
+// Official Hono Cloudflare Pages export
+export const onRequest = handle(app);
