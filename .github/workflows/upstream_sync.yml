@@ -1,0 +1,58 @@
+name: Safe Upstream Sync (KELLIA)
+
+on:
+  schedule:
+    # Run every Sunday at 00:00 UTC
+    - cron: '0 0 * * 0'
+  workflow_dispatch: # Allows manual trigger from GitHub Actions tab
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  check-and-sync:
+    name: Check & Ingest Upstream Data
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Check Upstream Changes
+        id: check_upstream
+        run: |
+          python scripts/sync_upstream.py --check
+
+      - name: Sync Upstream Data to Staging Branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          python scripts/sync_upstream.py --sync --branch upstream-sync
+
+      - name: Create Pull Request with New Data
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: upstream-sync
+          base: main
+          title: "✨ Upstream Data Ingestion: Update from KELLIA/dictionary"
+          body: |
+            ### 🏺 Automated Upstream Data Ingestion
+            This PR pulls the latest raw linguistic datasets (entries, etymologies, and inflections) from [KELLIA/dictionary](https://github.com/KELLIA/dictionary).
+            
+            - **Branch**: `upstream-sync`
+            - **Enrichment**: Regenerated `d1_coptic_dict.db` and clean Cloudflare D1 SQL export.
+            - **Zero Code Conflicts**: Modern React/Vite/Cloudflare code is completely untouched.
+            
+            Please review and merge into `main` to deploy to production.
+          commit-message: "chore(data): ingest latest linguistic data from upstream KELLIA/dictionary"
+          labels: |
+            data-sync
+            automated-pr

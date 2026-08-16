@@ -1,1 +1,42 @@
-*.pyc
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Production Build Output
+dist/
+dist-ssr/
+*.local
+
+# Wrangler / Cloudflare
+.wrangler/
+.mf/
+
+# Python cache & temp
+__pycache__/
+*.py[cod]
+*$py.class
+*.sqlite3-journal
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Local generated artifacts (re-creatable via npm run data:build)
+d1_coptic_dict.db
+migrations/d1_full_dump.sql
+
+# Environment variables & secrets
+.env
+.env.local
+.env.*.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# OS Files
+.DS_Store
+Thumbs.db

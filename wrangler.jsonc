@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "coptic-dictionary",
+  "compatibility_date": "2024-11-01",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "pages_build_output_dir": "dist",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "coptic-dict",
+      "database_id": "9c1dd666-b82a-46e6-a0e2-3fcd43007fb5",
+      "migrations_dir": "migrations"
+    }
+  ]
+}

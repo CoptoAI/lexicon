@@ -1,42 +1,110 @@
-# Coptic Dictionary Online
-The dictionary comprised of the XML Coptic lexicon created by the BBAW and interface by Coptic SCRIPTORIUM.  Currently deployed at https://coptic-dictionary.org/
+# Coptic Dictionary Online (Modernized for Cloudflare D1 & Pages)
 
-Lexicon data licensed [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/), software under the Apache 2.0 license (https://www.apache.org/licenses/LICENSE-2.0) (see below)
+The **Coptic Dictionary Online** is a modern, high-performance digital lexicon powered by **Cloudflare Pages**, **Workers (Hono Edge API)**, and **Cloudflare D1 (Serverless SQLite with FTS5 Full-Text Search)**.
 
-The virtual keyboard component on the search page is available under a BSD License - HTML Virtual Keyboard Interface Script (http://www.greywyvern.com/code/javascript/keyboard)
+It provides instantaneous search across the complete **Comprehensive Coptic Lexicon** (11,272 entries, 8,358 lemmas, and 32,452 collocation networks) compiled by BBAW, DDGLC, and Coptic Scriptorium.
 
-#### Lexicon preparation
+---
 
-The new *Comprehensive Coptic Lexicon* is a combination of two parts: the *BBAW Lexicon of Coptic Egyptian* of the project Strukturen und Transformationen des Wortschatzes der ägyptischen Sprache at the Berlin-Brandenburgische Akademie der Wissenschaften, Berlin, Germany, which includes etymologically Egyptian lexemes of Coptic, and the *DDGLC Lexicon of Greek Loanwords in Coptic* of the project Database and Dictionary of Greek Loanwords in Coptic at the Ägyptologisches Seminar, Freie Universität Berlin, Germany. Both projects are led by Prof. Tonio Sebastian Richter. The following people mainly contributed to compiling the lexical data:
-  * Dylan M. Burns (DDGLC)
-  * Frank Feder (BBAW, AdWG)
-  * Katrin John (DDGLC)
-  * Maxim Kupreyev (BBAW)
+## ✨ Features & Enhancements
 
-moreover
-  * Mathew Almond, Marc Brose, Sonja Dahlgren, Julien Delhez, Anne Grons, Joost Hagen, Jakob Höper, Mariana Jung, Elisabeth Koch, Lena Krastel, Frederic Krueger, Jan Moje, Franziska Naether, Anne Sörgel, Nina Speranskaja, Gunnar Sperveslage, Vincent Walter, Alberto Winterberg.
+- ⚡ **Cloudflare D1 + FTS5 Search**: Sub-millisecond full-text trigram search across Coptic headwords, English, German, and French definitions.
+- 🎨 **Modern Design System**: Obsidian Gold (Dark Mode) & Papyrus Linen (Light Mode) themes with glassmorphism, responsive mobile-first layout, and smooth animations.
+- 🔤 **Antinoou WebFont Typography**: Native embedded Coptic webfonts for accurate rendering of combining diacritics, supralinear strokes, and jinkim.
+- ⌨️ **Interactive Coptic Virtual Keyboard**: Touch-friendly virtual keyboard with full Coptic alphabet, demotic additions, diacritics, and real-time phonetic Latin typing mode.
+- 🌐 **Interactive Collocation Network Graph**: Force-directed phrase dependency visualizer showing syntactic and lexical co-occurrences from the Coptic Universal Dependency Treebank.
+- 🌍 **Multi-Dialect & POS Filters**: Instant filtering across **Sahidic (S)**, **Bohairic (B)**, **Akhmimic (A)**, **Fayyumic (F)**, **Lycopolitan (L)**, **Mesokemic (M)**, and **Old Coptic (K)**.
+- 📖 **Comprehensive Academic Tooling**: Attestation tables by dialect, Greek root links to Perseus/LSJ, and deep links to the Coptic Scriptorium corpus (ANNIS).
+- 🔌 **Cloudflare Edge Hono API**: Serverless REST API with endpoints for `/api/search`, `/api/entries/:id`, `/api/network/:word`, and `/api/stats`.
 
-Each lexicon entry has a stable *Thesaurus Linguae Aegyptiae* (TLA) ID no.
+---
 
-TEI XML compliant data files of the lexica are published  under a [CC BY-SA 4.0 Int.](https://creativecommons.org/licenses/by-sa/4.0/) license at DOI [10.17169/refubium-2333](https://doi.org/10.17169/refubium-2333).
+## 🚀 Quick Start (Local Development)
 
-#### Search interface
+### 1. Install Dependencies
+```bash
+npm install
+```
 
-The search interface was designed at Georgetown University as part of the project KELLIA by:  
-  * Emma Manning  
-  * Amir Zeldes
-  
-Code for the interface is made available under the Apache software license, version 2.0 (https://www.apache.org/licenses/LICENSE-2.0)
+### 2. Build or Rebuild the D1 Database (SQLite + FTS5)
+```bash
+npm run d1:build-db
+```
+*Reads `alpha_kyima_rc1.db` and generates `d1_coptic_dict.db` with FTS5 virtual tables and trigram indexes.*
 
+### 3. Start Development Server
+```bash
+npm run dev
+```
+Open **`http://localhost:5173/`** in your browser.
 
-#### Projects
+---
 
-  * [Strukturen und Transformationen des Wortschatzes der ägyptischen Sprache](https://www.saw-leipzig.de/de/projekte/strukturen-und-transformationen-des-wortschatzes-der-aegyptischen-sprache) (BBAW)
-  * [KELLIA](http://kellia.uni-goettingen.de/) (BBAW, Georgetown, Göttingen, Münster, Pacific)  
-  * [Coptic Scriptorium](http://copticscriptorium.org/) (Georgetown, Pacific)  
-  * [Sonderforschungsbereich (SFB) 1136](http://www.uni-goettingen.de/de/517150.html) - Bildung und Religion in Kulturen des Mittelmeerraums und seiner Umwelt von der Antike bis zum Mittelalter und zum Klassischen Islam - [Teilprojekt B 05](http://www.uni-goettingen.de/de/521144.html) (Universität Göttingen)  
+## ☁️ Deploying to Cloudflare Pages & D1
 
-#### Funding agencies
+### 1. Create Cloudflare D1 Database
+```bash
+npx wrangler d1 create coptic-dict
+```
+Copy the generated `database_id` into [wrangler.jsonc](file:///d:/Copto/dictionary/wrangler.jsonc).
 
-  * [Deutsche Forschungsgemeinschaft](http://dfg.de) (DFG)  
-  * [The National Endowment for the Humanities](https://www.neh.gov) (NEH)  
+### 2. Apply Schema & Migrations to Remote D1
+```bash
+npm run d1:migrate:remote
+# Or execute the dump file directly:
+npx wrangler d1 execute coptic-dict --file=./migrations/d1_full_dump.sql --remote
+```
+
+### 3. Build & Deploy to Cloudflare Pages
+```bash
+npm run build
+npm run deploy
+```
+
+---
+
+## 📁 Project Structure
+
+```
+├── functions/
+│   └── api/
+│       └── [[route]].ts         # Hono Edge API on Cloudflare Pages Functions
+├── migrations/
+│   ├── 0001_initial_schema.sql  # D1 SQLite Schema + FTS5 Virtual Table
+│   └── d1_full_dump.sql        # Full dataset SQL dump for remote D1 import
+├── public/
+│   └── fonts/                  # Antinoou & Annistools Coptic WebFonts
+├── scripts/
+│   ├── build_d1_database.py    # Automated SQLite -> D1 migration & FTS5 builder
+│   └── export_sql_dump.py      # D1 SQL statement exporter
+├── src/
+│   ├── components/
+│   │   ├── Header.tsx           # Navbar, stats badge, theme switcher
+│   │   ├── SearchBar.tsx        # Instant search, dialect pills, POS selector
+│   │   ├── CopticKeyboard.tsx   # Virtual Coptic keyboard & phonetic input
+│   │   ├── SearchResults.tsx    # Rich lexical cards with dialect tags
+│   │   ├── EntryDetailModal.tsx # Detailed forms table, citations, etymologies
+│   │   ├── TermNetworkView.tsx  # Force-directed collocation canvas graph
+│   │   ├── HowToModal.tsx       # Search guide & dialect abbreviations
+│   │   └── AboutModal.tsx       # Academic credits & license information
+│   ├── services/
+│   │   └── api.ts               # Client edge API fetcher
+│   ├── types/
+│   │   └── dictionary.ts        # TypeScript schemas & interfaces
+│   ├── utils/
+│   │   └── coptic.ts            # Coptic alphabet, phonetic transliteration
+│   ├── App.tsx                  # Main React application
+│   ├── index.css                # Obsidian Gold / Papyrus Linen design system
+│   └── main.tsx                 # App mount
+├── vite.config.ts               # Vite configuration with local SQLite API bridge
+├── wrangler.jsonc               # Cloudflare Pages & D1 configuration
+└── package.json                 # Project scripts & dependencies
+```
+
+---
+
+## 📜 Academic Credits & License
+
+- **Lexicon Data**: Licensed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) by BBAW & DDGLC.
+- **Software Interface**: Licensed under the [Apache 2.0 License](https://www.apache.org/licenses/LICENSE-2.0).
+- **Participating Projects**: [Coptic Scriptorium](https://copticscriptorium.org), [BBAW](https://www.saw-leipzig.de), [DDGLC](https://www.geschkult.fu-berlin.de/en/e/ddglc), [KELLIA](http://kellia.uni-goettingen.de/).
