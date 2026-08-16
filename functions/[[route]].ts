@@ -4,10 +4,10 @@ type Bindings = {
   DB: D1Database;
 };
 
-const app = new Hono<{ Bindings: Bindings }>().basePath('/api');
+const app = new Hono<{ Bindings: Bindings }>();
 
 // Database metadata & stats
-app.get('/stats', async (c) => {
+app.get('/api/stats', async (c) => {
   try {
     const entriesCount = await c.env.DB.prepare('SELECT count(*) as count FROM entries').first<{ count: number }>();
     const lemmasCount = await c.env.DB.prepare('SELECT count(*) as count FROM lemmas').first<{ count: number }>();
@@ -24,7 +24,7 @@ app.get('/stats', async (c) => {
 });
 
 // Comprehensive Search
-app.get('/search', async (c) => {
+app.get('/api/search', async (c) => {
   const q = c.req.query('q')?.trim() || '';
   const dialect = c.req.query('dialect') || 'any';
   const pos = c.req.query('pos') || 'any';
@@ -120,7 +120,7 @@ app.get('/search', async (c) => {
 });
 
 // Single entry detail
-app.get('/entries/:id', async (c) => {
+app.get('/api/entries/:id', async (c) => {
   const id = c.req.param('id');
   try {
     const isNumeric = /^\d+$/.test(id);
@@ -139,7 +139,7 @@ app.get('/entries/:id', async (c) => {
 });
 
 // Word collocation network graph
-app.get('/network/:word', async (c) => {
+app.get('/api/network/:word', async (c) => {
   const word = decodeURIComponent(c.req.param('word'));
   try {
     const { results } = await c.env.DB.prepare(`
@@ -189,7 +189,7 @@ app.get('/network/:word', async (c) => {
 });
 
 // Quick autocomplete suggestions
-app.get('/suggest', async (c) => {
+app.get('/api/suggest', async (c) => {
   const q = c.req.query('q')?.trim();
   if (!q || q.length < 1) return c.json({ suggestions: [] });
 
@@ -208,4 +208,11 @@ app.get('/suggest', async (c) => {
   }
 });
 
-export default app;
+// Cloudflare Pages Function entrypoint
+export const onRequest: PagesFunction<Bindings> = async (context) => {
+  const url = new URL(context.request.url);
+  if (url.pathname.startsWith('/api')) {
+    return app.fetch(context.request, context.env, context);
+  }
+  return context.next();
+};
