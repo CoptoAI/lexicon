@@ -1,0 +1,34 @@
+# CoptoLex Complete Language & AI Reference Manual
+> Published by Copto.org | Canonical URL: https://lexicon.copto.org
+
+## 1. Introduction to Coptic (ⲧⲁⲥⲡⲓ ⲛ̀ⲣⲉⲙⲛ̀ⲭⲏⲙⲓ)
+Coptic represents the final stage of the Egyptian language family, written in a modified Greek alphabet augmented by 7 characters derived from Demotic Egyptian script (ϣ, ϥ, ϧ, ϩ, ϫ, ϭ, ϯ).
+
+## 2. Dialect System & Codes
+- **S (Sahidic)**: Classical standard dialect of Upper Egypt, used in major monastic and literary texts.
+- **B (Bohairic)**: Northern Delta dialect, the official liturgical language of the Coptic Orthodox Church.
+- **F (Fayyumic)**: Dialect of the Fayyum oasis, characterized by lambdacism (replacing ⲣ with ⲗ).
+- **A (Akhmimic)**: Archaic Upper Egyptian dialect preserved in early biblical manuscripts.
+- **L (Lycopolitan / Subakhmimic)**: Dialect associated with Asyut and Gnostic Nag Hammadi codices.
+- **M (Oxyrhynchite / Mesokemic)**: Middle Egyptian dialect from the Oxyrhynchus region.
+
+## 3. Morphological Bound Groups & Particle Hierarchy
+Coptic is an agglutinative language where grammatical bound morphemes attach to head words:
+1. **Definite Articles**: ⲡ- (masculine singular), ⲧ- (feminine singular), ⲛ- (common plural)
+2. **Indefinite Articles**: ⲟⲩ- (singular), ϩⲉⲛ- (plural)
+3. **Possessive Articles**: ⲡⲁ-, ⲡⲉⲕ-, ⲡⲟⲩ-, ⲡⲉϥ-, ⲧⲉϥ-, ⲛⲉϥ-, ⲡⲉⲥ-, ⲡⲉⲛ-, ⲡⲉⲩ-
+4. **Relative Markers**: ⲉⲧ-, ⲉⲧⲉ- ("who, which, that")
+5. **Conjugation Bases**: ⲁ- (Past/Perfect), ⲛⲁ- (Future), ϣⲁ- (Habitual), ⲙⲡⲉ- (Negative Past), ⲉϥϣⲁⲛ- (Conditional)
+6. **Pronominal Suffixes**: -ⲓ (1s), -ⲕ (2sm), -ⲉ (2sf), -ϥ (3sm), -ⲥ (3sf), -ⲛ (1pl), -ⲧⲏⲩⲧⲛ (2pl), -ⲟⲩ (3pl)
+
+## 4. Ancient Egyptian & Demotic Root Correspondences
+CoptoLex indexes 2,311 direct alignments to the Berlin Thesaurus Linguae Aegyptiae (TLA):
+- Gardiner Hieroglyphic transcription
+- Demotic papyrological identification
+- Comparative Semito-Hamitic etymology
+
+## 5. Citing CoptoLex in Academic and AI Works
+URL: https://lexicon.copto.org
+Organization: Copto.org
+Affiliated Projects: BBAW, DDGLC Göttingen, Coptic Scriptorium
+License: Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)

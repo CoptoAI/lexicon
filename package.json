@@ -1,14 +1,15 @@
 {
-  "name": "coptic-dictionary",
+  "name": "coptolex",
   "version": "2.0.0",
-  "description": "Modern Coptic Dictionary Online powered by Cloudflare Pages, Workers, and D1 SQLite",
+  "description": "CoptoLex — Comprehensive Coptic Lexicon by Copto.org, powered by Cloudflare Pages and D1 SQLite",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "python scripts/generate_sitemap.py && tsc && vite build",
     "preview": "vite preview",
     "pages:dev": "wrangler pages dev dist --compatibility-date=2024-11-01 --d1=DB=coptic-dict",
     "deploy": "npm run build && wrangler pages deploy dist --branch=main --commit-dirty=true",
+    "sitemap": "python scripts/generate_sitemap.py",
     "data:build": "python scripts/build_d1_database.py && python scripts/export_sql_dump.py",
     "data:deploy": "wrangler d1 execute coptic-dict --file=./migrations/d1_full_dump.sql --remote -y",
     "data:sync": "npm run data:build && npm run data:deploy",

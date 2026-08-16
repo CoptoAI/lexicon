@@ -55,11 +55,11 @@ export const EntryDetailModal: React.FC<EntryDetailModalProps> = ({
   };
 
   const handleCopyBibtex = () => {
-    const bibtex = `@misc{cdo_${entry.xml_id},
+    const bibtex = `@misc{coptolex_${entry.xml_id},
   title = {${entry.coptic_name} - Comprehensive Coptic Lexicon Entry ${entry.xml_id}},
-  author = {Burns, Dylan and Feder, Frank and John, Katrin and Kupreyev, Maxim},
-  publisher = {Coptic Dictionary Online, BBAW, DDGLC, Coptic Scriptorium},
-  url = {https://coptic-dictionary.pages.dev/entry.py?tla=${entry.xml_id}},
+  author = {Burns, Dylan and Feder, Frank and John, Katrin and Kupreyev, Maxim and Copto.org},
+  publisher = {CoptoLex, Copto.org, BBAW, DDGLC, Coptic Scriptorium},
+  url = {https://lexicon.copto.org/?q=${encodeURIComponent(entry.coptic_name)}},
   year = {2026}
 }`;
     handleCopy(bibtex, 'bibtex');

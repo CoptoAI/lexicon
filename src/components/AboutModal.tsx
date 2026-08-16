@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Info, ExternalLink, ShieldCheck, Award } from 'lucide-react';
+import { X, Info, ExternalLink, ShieldCheck, Award, Globe, Sparkles } from 'lucide-react';
 
 interface AboutModalProps {
   onClose: () => void;
@@ -15,18 +15,18 @@ export const AboutModal: React.FC<AboutModalProps> = ({ onClose }) => {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <Info size={26} color="var(--accent-gold)" />
-          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '22px' }}>About the Coptic Dictionary Online</h2>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '22px' }}>About CoptoLex (Copto.org)</h2>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '14px', lineHeight: '1.6' }}>
           <p>
-            The <strong>Coptic Dictionary Online</strong> is a digital lexicon offering freely accessible lexical data and translations in English, French, and German across all Coptic dialects, powered by modern edge technologies on <strong>Cloudflare Pages &amp; D1 SQLite</strong>.
+            <strong>CoptoLex</strong> (<a href="https://lexicon.copto.org" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-gold)' }}>lexicon.copto.org</a>) is an open-access lexical database and digital research platform for the Coptic language, developed and maintained by <strong>Copto.org</strong>. Powered by modern edge infrastructure on Cloudflare Pages and D1 SQLite with real-time FTS5 trigram search and AI-ready linguistic indexing.
           </p>
 
           <div>
-            <h3 style={{ color: 'var(--accent-gold)', fontSize: '16px', marginBottom: '8px' }}>Lexicon Sources &amp; Compilation</h3>
+            <h3 style={{ color: 'var(--accent-gold)', fontSize: '16px', marginBottom: '8px' }}>Lexicon Sources &amp; Foundations</h3>
             <p>
-              The <em>Comprehensive Coptic Lexicon</em> combines two major foundational academic resources:
+              CoptoLex integrates foundational academic lexical resources:
             </p>
             <ul style={{ paddingLeft: '20px', marginTop: '6px' }}>
               <li>
@@ -35,12 +35,19 @@ export const AboutModal: React.FC<AboutModalProps> = ({ onClose }) => {
               <li>
                 <strong>DDGLC Lexicon of Greek Loanwords in Coptic</strong> (<em>Database and Dictionary of Greek Loanwords in Coptic</em> at Freie Universität Berlin).
               </li>
+              <li>
+                <strong>Thesaurus Linguae Aegyptiae (TLA)</strong>: 2,311 Ancient Egyptian and Demotic roots mapped to Gardiner hieroglyphic classifications.
+              </li>
             </ul>
           </div>
 
           <div>
-            <h3 style={{ color: 'var(--accent-gold)', fontSize: '16px', marginBottom: '8px' }}>Contributing Projects &amp; Partners</h3>
+            <h3 style={{ color: 'var(--accent-gold)', fontSize: '16px', marginBottom: '8px' }}>Institutional Partners &amp; Contributing Projects</h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px' }}>
+              <a href="https://copto.org" target="_blank" rel="noopener noreferrer" className="btn-nav" style={{ justifyContent: 'space-between', borderColor: 'var(--border-gold)' }}>
+                <span style={{ color: 'var(--accent-gold)', fontWeight: 600 }}>Copto.org Initiative</span>
+                <ExternalLink size={14} />
+              </a>
               <a href="https://copticscriptorium.org" target="_blank" rel="noopener noreferrer" className="btn-nav" style={{ justifyContent: 'space-between' }}>
                 <span>Coptic Scriptorium</span>
                 <ExternalLink size={14} />
@@ -63,7 +70,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({ onClose }) => {
             </div>
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
               Lexicon data is licensed under <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-gold)' }}>Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)</a>.
-              Software interface is licensed under the Apache 2.0 License.
+              Software platform by <strong>Copto.org</strong>.
             </p>
           </div>
         </div>

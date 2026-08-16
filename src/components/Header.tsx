@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sun, Moon, BookOpen, Info, HelpCircle, Database } from 'lucide-react';
+import { Sun, Moon, BookOpen, Info, HelpCircle, Database, Sparkles } from 'lucide-react';
 import { DatabaseStats } from '../types/dictionary';
 
 interface HeaderProps {
@@ -21,11 +21,26 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   return (
     <header className="site-header">
-      <div className="logo-wrapper" onClick={onResetSearch} title="Coptic Dictionary Online Home">
+      <div className="logo-wrapper" onClick={onResetSearch} title="CoptoLex — Comprehensive Coptic Lexicon (lexicon.copto.org)">
         <div className="logo-icon">ⲁ</div>
         <div className="logo-title-group">
-          <h1>Coptic Dictionary Online</h1>
-          <p>ⲡⲗⲉⲝⲓⲕⲟⲛ ⲛ̀ϯⲁⲥⲡⲓ ⲛ̀ⲣⲉⲙⲛ̀ⲭⲏⲙⲓ &bull; Comprehensive Lexicon</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h1 style={{ margin: 0, fontSize: '22px', letterSpacing: '0.5px' }}>CoptoLex</h1>
+            <span style={{
+              background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.2), rgba(212, 175, 55, 0.05))',
+              border: '1px solid var(--border-gold)',
+              color: 'var(--accent-gold)',
+              fontSize: '11px',
+              fontWeight: 700,
+              padding: '2px 7px',
+              borderRadius: '12px',
+              textTransform: 'uppercase',
+              letterSpacing: '0.6px'
+            }}>
+              by Copto.org
+            </span>
+          </div>
+          <p>ⲡⲗⲉⲝⲓⲕⲟⲛ ⲛ̀ϯⲁⲥⲡⲓ ⲛ̀ⲣⲉⲙⲛ̀ⲭⲏⲙⲓ &bull; Comprehensive Coptic Lexicon</p>
         </div>
       </div>
 
@@ -44,7 +59,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         <button className="btn-nav" onClick={onOpenAbout}>
           <Info size={15} />
-          <span>About</span>
+          <span>About CoptoLex</span>
         </button>
 
         <button className="btn-icon" onClick={onToggleTheme} title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}>

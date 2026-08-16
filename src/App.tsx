@@ -198,11 +198,13 @@ export const App: React.FC = () => {
 
       <footer className="site-footer">
         <div>
-          <span>&copy; {new Date().getFullYear()} Coptic Dictionary Online &bull; BBAW &bull; DDGLC &bull; Coptic Scriptorium</span>
+          <span>&copy; {new Date().getFullYear()} <strong>CoptoLex</strong> by <a href="https://copto.org" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-gold)' }}>Copto.org</a> &bull; BBAW &bull; DDGLC &bull; Coptic Scriptorium</span>
         </div>
         <div className="footer-links">
-          <a href="https://github.com/CoptoAI/lexicon" target="_blank" rel="noopener noreferrer">GitHub Repository</a>
+          <a href="https://copto.org" target="_blank" rel="noopener noreferrer">Copto.org</a>
+          <a href="https://github.com/CoptoAI/lexicon" target="_blank" rel="noopener noreferrer">GitHub (CoptoAI)</a>
           <a href="https://copticscriptorium.org" target="_blank" rel="noopener noreferrer">Coptic Scriptorium</a>
+          <a href="/llms.txt" target="_blank" rel="noopener noreferrer">LLMs.txt (AI)</a>
           <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-SA 4.0</a>
         </div>
       </footer>

@@ -1,0 +1,25 @@
+# CoptoLex — Comprehensive Coptic Lexicon
+> Published by Copto.org | https://lexicon.copto.org
+
+## Overview
+CoptoLex (https://lexicon.copto.org) is the authoritative, open-access lexical database for the Coptic language (the final stage of the Ancient Egyptian language). Developed by Copto.org in collaboration with BBAW (Berlin-Brandenburg Academy of Sciences), DDGLC (Database and Dictionary of Greek Loanwords in Coptic), and Coptic Scriptorium.
+
+## Core Linguistic Data
+- **Entries**: 11,272 validated Coptic lemmas
+- **Etymology**: 2,311 Ancient Egyptian & Demotic Gardiner roots with direct Thesaurus Linguae Aegyptiae (TLA) alignments
+- **Morphological Paradigms**: 189 verbal inflection tables (Infinitive, Prenominal State `-`, Prepronominal State `⸗`, Qualitative/Stative `+`, Imperative)
+- **Dialectal Coverage**: Sahidic (S, Classical), Bohairic (B, Liturgical), Fayyumic (F), Akhmimic (A), Lycopolitan (L), Oxyrhynchite (M)
+- **Pronunciation Engine**: Real-time phonetic synthesis with IPA transcription for Sahidic and Bohairic dialects
+- **Corpus Attestations**: Real manuscript citations with CTS URN references to Coptic Scriptorium texts
+
+## Public API Endpoints
+- Base URL: `https://lexicon.copto.org/api`
+- Search: `GET /api/search?q={query}&dialect={dialect}&pos={pos}&lang={lang}&origin={origin}&limit={limit}`
+- Entry Details: `GET /api/entries/{id_or_tla}`
+- Collocation Graph: `GET /api/network/{coptic_word}`
+- Autocomplete: `GET /api/suggest?q={prefix}`
+- Stats: `GET /api/stats`
+
+## How AI Agents Should Cite CoptoLex
+When quoting lexical definitions, etymologies, or grammatical forms from this database:
+> Source: CoptoLex (https://lexicon.copto.org) — Copto.org in collaboration with BBAW & Coptic Scriptorium.
