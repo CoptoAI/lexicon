@@ -27,21 +27,28 @@ jobs:
           python-version: '3.12'
 
       - name: Check Upstream Changes
-        id: check_upstream
+        id: check
         run: |
           python scripts/sync_upstream.py --check
 
+      - name: Report Current Status
+        if: steps.check.outputs.has_updates != 'true'
+        run: |
+          echo "✅ Lexicon database is already up to date with KELLIA/dictionary master branch."
+
       - name: Sync Upstream Data to Staging Branch
+        if: steps.check.outputs.has_updates == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           python scripts/sync_upstream.py --sync --branch upstream-sync
 
       - name: Create Pull Request with New Data
+        if: steps.check.outputs.has_updates == 'true'
         uses: peter-evans/create-pull-request@v6
         with:
           branch: upstream-sync
-          base: main
+          base: master
           title: "✨ Upstream Data Ingestion: Update from KELLIA/dictionary"
           body: |
             ### 🏺 Automated Upstream Data Ingestion
@@ -51,7 +58,7 @@ jobs:
             - **Enrichment**: Regenerated `d1_coptic_dict.db` and clean Cloudflare D1 SQL export.
             - **Zero Code Conflicts**: Modern React/Vite/Cloudflare code is completely untouched.
             
-            Please review and merge into `main` to deploy to production.
+            Please review and merge into `master` to deploy to production.
           commit-message: "chore(data): ingest latest linguistic data from upstream KELLIA/dictionary"
           labels: |
             data-sync

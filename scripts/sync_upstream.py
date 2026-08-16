@@ -16,6 +16,11 @@ import urllib.request
 import sqlite3
 from datetime import datetime
 
+# Ensure scripts directory is in python search path
+scripts_dir = os.path.dirname(os.path.abspath(__file__))
+if scripts_dir not in sys.path:
+    sys.path.insert(0, scripts_dir)
+
 # Windows stdout utf-8 compatibility
 if sys.platform == 'win32' and hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
@@ -23,15 +28,6 @@ if sys.platform == 'win32' and hasattr(sys.stdout, 'reconfigure'):
 UPSTREAM_REPO_URL = "https://github.com/KELLIA/dictionary.git"
 UPSTREAM_API_URL = "https://api.github.com/repos/KELLIA/dictionary"
 METADATA_FILE = ".upstream_sync.json"
-
-DATA_PATTERNS = [
-    "alpha_*.db",
-    "utils/egyptian_etymologies.tab",
-    "utils/inflections.tab",
-    "utils/lemmas.tab",
-    "utils/collocates.tab",
-    "utils/corpus_examples.tab"
-]
 
 def load_sync_metadata(base_dir: str) -> dict:
     meta_path = os.path.join(base_dir, METADATA_FILE)
@@ -72,25 +68,13 @@ def get_latest_upstream_commit():
                 "author": data.get("commit", {}).get("author", {}).get("name")
             }
     except Exception as e:
-        print(f"Note: GitHub API request failed ({e}), falling back to git remote check.")
+        print(f"Note: GitHub API request notice ({e}).")
         return None
 
-def check_upstream_remote():
-    """Checks if git remote 'upstream' is configured, otherwise adds it."""
-    try:
-        out = subprocess.check_output(["git", "remote", "-v"], stderr=subprocess.DEVNULL).decode("utf-8")
-        if "upstream" not in out:
-            print(f"Configuring git remote 'upstream' -> {UPSTREAM_REPO_URL}")
-            subprocess.check_call(["git", "remote", "add", "upstream", UPSTREAM_REPO_URL])
-        return True
-    except Exception as e:
-        print(f"Git remote configuration notice: {e}")
-        return False
-
-def check_updates(base_dir: str):
-    """Compares upstream state with local metadata."""
+def check_updates(base_dir: str) -> bool:
+    """Compares upstream state with local metadata. Returns True if updates exist."""
     meta = load_sync_metadata(base_dir)
-    last_sha = meta.get("last_synced_commit")
+    last_sha = (meta.get("last_synced_commit") or "").strip()
     
     print("=" * 70)
     print(" COPTIC DICTIONARY ONLINE - UPSTREAM SYNC CHECK")
@@ -100,21 +84,28 @@ def check_updates(base_dir: str):
     print("=" * 70)
 
     remote_info = get_latest_upstream_commit()
+    latest_sha = None
     if remote_info:
-        latest_sha = remote_info["sha"]
+        latest_sha = remote_info["sha"].strip()
         print(f"Latest Upstream Commit : {latest_sha[:8]} by {remote_info['author']} ({remote_info['date']})")
         print(f"Commit Message         : {remote_info['message']}")
-        
-        if last_sha and (last_sha == latest_sha or last_sha.startswith(latest_sha) or latest_sha.startswith(last_sha)):
-            print("\n✅ Upstream data is ALREADY UP TO DATE. No new data changes.")
-            return False
-        else:
-            print(f"\n✨ NEW DATA DETECTED in upstream repository!")
-            print(f"   Run 'npm run upstream:sync' to safely ingest on a new branch.")
-            return True
     else:
-        print("Could not retrieve remote commit metadata. Please check internet connection.")
+        # Fallback to direct git fetch check
+        try:
+            subprocess.check_call(["git", "fetch", UPSTREAM_REPO_URL, "master"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            latest_sha = subprocess.check_output(["git", "rev-parse", "FETCH_HEAD"]).decode("utf-8").strip()
+            print(f"Latest Upstream Commit (via Git): {latest_sha[:8]}")
+        except Exception as err:
+            print(f"Could not reach upstream repository: {err}")
+            return False
+
+    if last_sha and (last_sha == latest_sha or last_sha.startswith(latest_sha) or latest_sha.startswith(last_sha)):
+        print("\n✅ Upstream data is ALREADY UP TO DATE. No new data changes.")
         return False
+    else:
+        print(f"\n✨ NEW DATA DETECTED in upstream repository!")
+        print(f"   Run 'npm run upstream:sync' to safely ingest on a new branch.")
+        return True
 
 def sync_data(base_dir: str, branch_name: str = "upstream-sync", dry_run: bool = False):
     """Safely extracts raw data from upstream into a separate stability branch."""
@@ -123,29 +114,26 @@ def sync_data(base_dir: str, branch_name: str = "upstream-sync", dry_run: bool =
     print(f" STARTING SAFE UPSTREAM SYNC (Branch: {branch_name})")
     print("=" * 70)
 
-    check_upstream_remote()
-
     if dry_run:
         print(f"[DRY-RUN] Would fetch upstream and checkout only data files on branch '{branch_name}'.")
         return
 
-    # 1. Fetch upstream
-    print("\n[Step 1/5] Fetching upstream commits from KELLIA/dictionary...")
+    # 1. Fetch upstream directly by URL to FETCH_HEAD (works in any CI environment without pre-configured remotes)
+    print(f"\n[Step 1/5] Fetching upstream commits from {UPSTREAM_REPO_URL}...")
     try:
-        subprocess.check_call(["git", "fetch", "upstream", "master"])
+        subprocess.check_call(["git", "fetch", UPSTREAM_REPO_URL, "master"])
     except subprocess.CalledProcessError as e:
         print(f"Error fetching from upstream git: {e}")
         sys.exit(1)
 
-    # 2. Get upstream commit SHA
-    latest_sha = subprocess.check_output(["git", "rev-parse", "upstream/master"]).decode("utf-8").strip()
+    # 2. Get upstream commit SHA from FETCH_HEAD
+    latest_sha = subprocess.check_output(["git", "rev-parse", "FETCH_HEAD"]).decode("utf-8").strip()
     print(f"Fetched upstream commit: {latest_sha[:10]}")
 
     # 3. Create or switch to stability branch
     print(f"\n[Step 2/5] Switching to isolated sync branch '{branch_name}'...")
     try:
-        # Check if branch exists
-        branches = subprocess.check_output(["git", "branch"]).decode("utf-8")
+        branches = subprocess.check_output(["git", "branch", "-a"]).decode("utf-8")
         if branch_name in branches:
             subprocess.check_call(["git", "checkout", branch_name])
         else:
@@ -153,7 +141,7 @@ def sync_data(base_dir: str, branch_name: str = "upstream-sync", dry_run: bool =
     except Exception as e:
         print(f"Branch switch notice: {e}")
 
-    # 4. Check out ONLY raw data files from upstream
+    # 4. Check out ONLY raw data files from FETCH_HEAD
     print("\n[Step 3/5] Extracting only raw linguistic data (zero code overwrites)...")
     data_files = [
         "utils/egyptian_etymologies.tab",
@@ -164,17 +152,18 @@ def sync_data(base_dir: str, branch_name: str = "upstream-sync", dry_run: bool =
 
     for f in data_files:
         try:
-            subprocess.check_call(["git", "checkout", "upstream/master", "--", f], stderr=subprocess.DEVNULL)
+            subprocess.check_call(["git", "checkout", "FETCH_HEAD", "--", f], stderr=subprocess.DEVNULL)
             print(f"  ✓ Updated {f}")
         except Exception:
             pass
 
-    # Try checking out latest db if available
+    # Try checking out latest db if available in FETCH_HEAD
     try:
-        db_files = subprocess.check_output(["git", "ls-tree", "--name-only", "upstream/master"]).decode("utf-8").split("\n")
+        db_files = subprocess.check_output(["git", "ls-tree", "--name-only", "FETCH_HEAD"]).decode("utf-8").split("\n")
         for line in db_files:
+            line = line.strip()
             if line.startswith("alpha_") and line.endswith(".db"):
-                subprocess.check_call(["git", "checkout", "upstream/master", "--", line], stderr=subprocess.DEVNULL)
+                subprocess.check_call(["git", "checkout", "FETCH_HEAD", "--", line], stderr=subprocess.DEVNULL)
                 print(f"  ✓ Updated database: {line}")
                 meta["synced_db_file"] = line
     except Exception as e:
@@ -213,7 +202,11 @@ def main():
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
     if args.check:
-        check_updates(base_dir)
+        has_updates = check_updates(base_dir)
+        # Return exit code 0 on success, and write github output if in CI
+        if "GITHUB_OUTPUT" in os.environ:
+            with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as f:
+                f.write(f"has_updates={'true' if has_updates else 'false'}\n")
     elif args.sync or not sys.argv[1:]:
         sync_data(base_dir, branch_name=args.branch, dry_run=args.dry_run)
     else:
