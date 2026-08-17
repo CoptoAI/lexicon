@@ -28,7 +28,10 @@ def build_offline_dataset():
     out_file = os.path.join(out_dir, 'dictionary_offline.json')
 
     if not os.path.exists(db_path):
-        print(f"Error: {db_path} does not exist. Run build_d1_database.py first.")
+        if os.path.exists(out_file):
+            print(f"Notice: {db_path} does not exist. Using pre-generated {out_file}.")
+            return
+        print(f"Error: {db_path} does not exist and {out_file} not found. Run build_d1_database.py first.")
         sys.exit(1)
 
     print(f"Reading entries from {db_path}...")
