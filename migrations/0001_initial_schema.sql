@@ -77,16 +77,22 @@ CREATE TABLE inflections (
 );
 
 CREATE TABLE citations (
-    tla TEXT,
-    lemma TEXT,
-    urn TEXT,
-    chapter TEXT,
-    verse TEXT,
-    priority INTEGER,
-    notes TEXT
+    id TEXT PRIMARY KEY,
+    lemma TEXT NOT NULL,
+    lemma_clean TEXT NOT NULL,
+    reference TEXT NOT NULL,
+    reference_ar TEXT,
+    urn TEXT NOT NULL,
+    genre TEXT NOT NULL,
+    dialect TEXT NOT NULL,
+    source_name TEXT NOT NULL,
+    coptic_text TEXT NOT NULL,
+    english_translation TEXT,
+    arabic_translation TEXT
 );
 
-CREATE INDEX idx_citations_tla ON citations(tla);
+CREATE INDEX idx_citations_lemma_clean ON citations(lemma_clean);
+CREATE INDEX idx_citations_genre ON citations(genre);
 
 CREATE TABLE lemmas (
     word TEXT,

@@ -1,0 +1,79 @@
+{
+  "name": "CoptoLex — Comprehensive Coptic Lexicon",
+  "short_name": "CoptoLex",
+  "description": "Offline Coptic Lexicon & Dictionary with 11,272 entries, Egyptian roots, dialect paradigms, and audio pronunciation.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#0c0f17",
+  "theme_color": "#0c0f17",
+  "lang": "en",
+  "dir": "auto",
+  "categories": ["education", "books", "reference", "utilities"],
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Search Coptic Lexicon",
+      "short_name": "Search",
+      "description": "Search 11,272 Coptic words and Egyptian roots",
+      "url": "/?q=",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Virtual Keyboard",
+      "short_name": "Keyboard",
+      "description": "Open Coptic virtual keyboard",
+      "url": "/?action=keyboard",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Saved Words",
+      "short_name": "Saved",
+      "description": "View bookmarked offline vocabulary",
+      "url": "/?tab=saved",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Egyptian Roots",
+      "short_name": "Egyptian",
+      "description": "Explore words with Ancient Egyptian & Demotic roots",
+      "url": "/?origin=egyptian",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
+}

@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DictionaryEntry, Sense } from '../types/dictionary';
 import { DIALECT_DESCRIPTIONS, POS_DESCRIPTIONS } from '../utils/coptic';
 import { playSynthesizedCoptic } from '../utils/audio';
-import { Share2, Sparkles, BookOpen, Volume2, Flame } from 'lucide-react';
+import { isWordSaved, toggleSaveWord, subscribeSavedWords } from '../services/savedWords';
+import { Share2, Sparkles, BookOpen, Volume2, Flame, Bookmark } from 'lucide-react';
 import { UiTranslations } from '../utils/i18n';
 import { stripHtmlAndTags } from '../utils/richText';
 
@@ -24,6 +25,21 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
   t
 }) => {
   const [playingWord, setPlayingWord] = useState<string | null>(null);
+  const [savedIds, setSavedIds] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    const updateSaved = () => {
+      const saved = new Set<number>();
+      entries.forEach((e) => {
+        if (isWordSaved(e.id)) saved.add(e.id);
+      });
+      setSavedIds(saved);
+    };
+
+    updateSaved();
+    const unsub = subscribeSavedWords(() => updateSaved());
+    return unsub;
+  }, [entries]);
 
   const getParsedSenses = (entry: DictionaryEntry): Sense[] => {
     if (entry.en_json) {
@@ -66,10 +82,21 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
 
   const handlePlayAudio = (e: React.MouseEvent, entry: DictionaryEntry) => {
     e.stopPropagation();
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try { navigator.vibrate(10); } catch (err) {}
+    }
     const dialect = entry.dialects?.includes('B') && !entry.dialects?.includes('S') ? 'B' : 'S';
     setPlayingWord(entry.coptic_name);
     playSynthesizedCoptic(entry.coptic_name, dialect);
     setTimeout(() => setPlayingWord(null), 1000);
+  };
+
+  const handleToggleSave = (e: React.MouseEvent, entry: DictionaryEntry) => {
+    e.stopPropagation();
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try { navigator.vibrate(15); } catch (err) {}
+    }
+    toggleSaveWord(entry);
   };
 
   if (loading) {
@@ -83,12 +110,19 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
 
   if (entries.length === 0) {
     return (
-      <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)', background: 'var(--bg-surface)', borderRadius: 'var(--radius-md)', border: '1px dashed var(--border-subtle)' }}>
+      <div
+        style={{
+          textAlign: 'center',
+          padding: '60px 20px',
+          color: 'var(--text-muted)',
+          background: 'var(--bg-surface)',
+          borderRadius: 'var(--radius-md)',
+          border: '1px dashed var(--border-subtle)'
+        }}
+      >
         <BookOpen size={40} style={{ margin: '0 auto 16px auto', color: 'var(--accent-gold)' }} />
         <h3 style={{ fontSize: '18px', color: 'var(--text-primary)', marginBottom: '8px' }}>{t.noResultsTitle}</h3>
-        <p style={{ maxWidth: '500px', margin: '0 auto', fontSize: '14px' }}>
-          {t.noResultsBody}
-        </p>
+        <p style={{ maxWidth: '500px', margin: '0 auto', fontSize: '14px' }}>{t.noResultsBody}</p>
       </div>
     );
   }
@@ -106,6 +140,7 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
           const dialects = getDialectList(entry.dialects);
           const posDesc = POS_DESCRIPTIONS[entry.pos] || entry.pos;
           const isPlaying = playingWord === entry.coptic_name;
+          const isSaved = savedIds.has(entry.id);
 
           return (
             <div
@@ -120,19 +155,19 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
                   <button
                     className={`btn-icon ${isPlaying ? 'active' : ''}`}
                     style={{
-                      width: '30px',
-                      height: '30px',
+                      width: '32px',
+                      height: '32px',
                       borderRadius: '50%',
                       background: isPlaying ? 'var(--accent-gold)' : 'var(--bg-surface-elevated)',
                       color: isPlaying ? '#0c0f17' : 'var(--accent-gold)',
                       border: '1px solid var(--border-gold)',
-                      transform: isPlaying ? 'scale(1.15)' : 'none',
+                      transform: isPlaying ? 'scale(1.1)' : 'none',
                       transition: 'all 0.2s ease'
                     }}
                     onClick={(e) => handlePlayAudio(e, entry)}
                     title="Play Coptic pronunciation"
                   >
-                    <Volume2 size={16} />
+                    <Volume2 size={15} />
                   </button>
 
                   {entry.ipa_sahidic && (
@@ -146,28 +181,42 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
                   </span>
 
                   {entry.origin === 'greek' ? (
-                    <span className="dialect-tag" style={{ borderColor: 'rgba(99, 102, 241, 0.4)', color: '#818cf8' }} title="Greek Loanword in Coptic (DDGLC)">
+                    <span
+                      className="dialect-tag"
+                      style={{ borderColor: 'rgba(99, 102, 241, 0.4)', color: '#818cf8' }}
+                      title="Greek Loanword in Coptic (DDGLC)"
+                    >
                       🏛️ Greek
                     </span>
                   ) : (
-                    <span className="dialect-tag" style={{ borderColor: 'rgba(212, 175, 55, 0.4)', color: 'var(--accent-gold)' }} title="Ancient Egyptian Heritage (BBAW)">
+                    <span
+                      className="dialect-tag"
+                      style={{ borderColor: 'rgba(212, 175, 55, 0.4)', color: 'var(--accent-gold)' }}
+                      title="Ancient Egyptian Heritage (BBAW)"
+                    >
                       🏺 Egyptian
                     </span>
                   )}
 
                   {entry.freq_rank && entry.freq_rank < 1000 && (
-                    <span className="dialect-tag" style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', color: 'var(--accent-amber)', borderColor: 'rgba(251, 191, 36, 0.4)' }} title={`Rank #${entry.freq_rank} in Coptic corpus`}>
+                    <span
+                      className="dialect-tag"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '3px',
+                        color: 'var(--accent-amber)',
+                        borderColor: 'rgba(251, 191, 36, 0.4)'
+                      }}
+                      title={`Rank #${entry.freq_rank} in Coptic corpus`}
+                    >
                       <Flame size={10} />
                       <span>#{entry.freq_rank}</span>
                     </span>
                   )}
-
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                    [{entry.xml_id}]
-                  </span>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div className="entry-dialects-row">
                     {dialects.map((d) => (
                       <span
@@ -180,6 +229,22 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
                       </span>
                     ))}
                   </div>
+
+                  {/* Bookmark Button */}
+                  <button
+                    className={`btn-icon ${isSaved ? 'bookmarked' : ''}`}
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      color: isSaved ? 'var(--accent-gold)' : 'var(--text-muted)',
+                      background: isSaved ? 'rgba(212, 175, 55, 0.15)' : undefined,
+                      borderColor: isSaved ? 'var(--accent-gold)' : undefined
+                    }}
+                    onClick={(e) => handleToggleSave(e, entry)}
+                    title={isSaved ? 'Remove from Saved' : 'Save for offline revision'}
+                  >
+                    <Bookmark size={15} fill={isSaved ? 'currentColor' : 'none'} />
+                  </button>
 
                   <button
                     className="btn-icon"

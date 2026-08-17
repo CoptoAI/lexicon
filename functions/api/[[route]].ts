@@ -219,6 +219,60 @@ const registerRoutes = (prefix: string = '') => {
       return c.json({ error: err.message }, 500);
     }
   });
+  // Concordance lookup
+  app.get(`${prefix}/concordance`, async (c) => {
+    c.header('Access-Control-Allow-Origin', '*');
+    c.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    c.header('Cache-Control', 'public, max-age=86400, s-maxage=604800');
+
+    const lemma = c.req.query('lemma')?.trim() || '';
+    if (!lemma) return c.json({ citations: [], count: 0 });
+
+    const cleanLemma = lemma
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f\ufe20-\ufe2f\u02bc\u02bd`\'\-\=⸗·\*\.\?\[\]\(\)]/g, '')
+      .normalize('NFC')
+      .trim()
+      .toLowerCase();
+
+    try {
+      // 1. Query exact lemma or clean lemma
+      const sql = `
+        SELECT id, reference, reference_ar, urn, genre, dialect, source_name, coptic_text, english_translation, arabic_translation
+        FROM citations
+        WHERE lemma_clean = ? OR lemma = ?
+        LIMIT 10
+      `;
+      const stmt = await c.env.DB.prepare(sql).bind(cleanLemma, lemma).all();
+      let results = stmt.results || [];
+
+      // 2. Prefix/Compound fallback if 0 results
+      if (results.length === 0) {
+        const compoundPrefixes = ['ⲙⲛⲧ', 'ⲙⲉⲧ', 'ⲣⲉϥ', 'ⲣⲉϥϫⲓ', 'ⲁⲧ', 'ⲥⲁ', 'ϫⲓⲛ', 'ⲙⲁⲛ'];
+        for (const pfx of compoundPrefixes) {
+          const cleanPfx = pfx.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+          if (cleanLemma.startsWith(cleanPfx) && cleanLemma.length > cleanPfx.length + 2) {
+            const stem = cleanLemma.slice(cleanPfx.length);
+            const stemStmt = await c.env.DB.prepare(`
+              SELECT id, reference, reference_ar, urn, genre, dialect, source_name, coptic_text, english_translation, arabic_translation
+              FROM citations
+              WHERE lemma_clean = ?
+              LIMIT 6
+            `).bind(stem).all();
+            if (stemStmt.results && stemStmt.results.length > 0) {
+              results = stemStmt.results;
+              break;
+            }
+          }
+        }
+      }
+
+      return c.json({ citations: results, count: results.length });
+    } catch (err: any) {
+      return c.json({ error: err.message }, 500);
+    }
+  });
+
   // CORS Preflight
   app.options('*', (c) => {
     c.header('Access-Control-Allow-Origin', '*');

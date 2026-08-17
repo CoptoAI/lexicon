@@ -1,0 +1,265 @@
+<meta annotation="Elizabeth Davidson, Caroline T. Schroeder" Arabic_translation="Safaa Mahfouz Mohamed" author="unknown" collection="Papyrussammlung" Coptic_edition="Chaîne (1960)" corpus="apophthegmata.patrum" country="Egypt" document_cts_urn="urn:cts:copticLit:ap.32.monbeg" entities="gold" Greek_source="Alphabetical Collection Benjamin 5" identities="gold" idno="K 0321" language="Sahidic Coptic" license="&lt;a href='https://creativecommons.org/licenses/by/4.0/'&gt;CC-BY 4.0&lt;/a&gt;" msName="MONB.EG" objectType="codex" origPlace="White Monastery" pages_from="73" pages_to="73" parsing="gold" paths_manuscripts="&lt;a href='http://paths.uniroma1.it/atlas/manuscripts/360'&gt;360&lt;/a&gt;" paths_works="&lt;a href='http://paths.uniroma1.it/atlas/works/443'&gt;443&lt;/a&gt;" people="none" placeName="Atripe" places="none" project="Coptic SCRIPTORIUM" redundant="no" repository="Österreichische Nationalbibliothek" segmentation="gold" tagging="gold" title="Apophthegmata Patrum Sahidic 032" translation="Elizabeth Davidson" Trismegistos="none" version_date="2025-11-25" version_n="6.2.0">
+<pb_xml_id pb_xml_id="EG73">
+<cb_n cb_n="1">
+<verse_n verse_n="1">
+<vid_n vid_n="urn:cts:copticLit:ap.32.monbeg:1.1">
+<chapter_n chapter_n="1">
+<translation translation="Apa Benjamin and his disciples said, 'Walk on the road of the king,">
+<arabic arabic=",قَالَ) اَلْأَنْبَا بِنْيَامِينُ وَتَلَامِيذُهُ: 'سِيرُوا فِي طَرِيقِ الْمَلِكِ)">
+<lb_n lb_n="1">
+<orig_group orig_group="Ⲛϭⲓ̇ⲁ̇ⲡⲁ">
+<norm_group norm_group="ⲛϭⲓⲁⲡⲁ">
+<orig orig="Ⲛϭⲓ̇">
+<norm xml:id="u1" func="case" head="#u2" new_sent="true" pos="PTC" lemma="ⲛϭⲓ" norm="ⲛϭⲓ">
+<hi_rend hi_rend="large red ekthetic">
+Ⲛ
+</hi_rend>
+<hi_rend hi_rend="large red">
+ϭ
+</hi_rend>
+ⲓ̇
+</norm>
+</orig>
+<entity head_tok="#u3" text="ⲁⲡⲁ ⲃⲉⲛⲓⲁⲙⲓⲛ" entity="person">
+<orig orig="ⲁ̇ⲡⲁ">
+<norm xml:id="u2" func="root" pos="N" lemma="ⲁⲡⲁ" norm="ⲁⲡⲁ">
+<lang lang="Hebrew">
+ⲁ̇ⲡⲁ
+</lang>
+</norm>
+</orig>
+</norm_group>
+</orig_group>
+<orig_group orig_group="ⲃⲉⲛⲓ̇ⲁ̇ⲙⲓ̇ⲛ">
+<norm_group norm_group="ⲃⲉⲛⲓⲁⲙⲓⲛ">
+<orig orig="ⲃⲉⲛⲓ̇ⲁ̇ⲙⲓ̇ⲛ">
+<norm xml:id="u3" func="flat" head="#u2" pos="NPROP" lemma="ⲃⲉⲛⲓⲁⲙⲓⲛ" norm="ⲃⲉⲛⲓⲁⲙⲓⲛ">
+<lang lang="Hebrew">
+ⲃⲉⲛⲓ̇ⲁ̇ⲙⲓ̇ⲛ
+</lang>
+</norm>
+</orig>
+</norm_group>
+</orig_group>
+</entity>
+<orig_group orig_group="ⲙⲛ̇ⲛⲉϥⲙⲁⲑⲏⲧⲏⲥ">
+<norm_group norm_group="ⲙⲛⲛⲉϥⲙⲁⲑⲏⲧⲏⲥ">
+<orig orig="ⲙⲛ̇">
+<norm xml:id="u4" func="cc" head="#u6" pos="PREP" lemma="ⲙⲛ" norm="ⲙⲛ">
+ⲙⲛ̇
+</norm>
+</orig>
+</lb_n>
+<lb_n lb_n="2">
+<entity head_tok="#u6" text="ⲛⲉϥ ⲙⲁⲑⲏⲧⲏⲥ" entity="person">
+<orig orig="ⲛⲉϥ">
+<norm xml:id="u5" func="nmod:poss" head="#u6" pos="PPOS" lemma="ⲡⲉϥ" norm="ⲛⲉϥ">
+ⲛⲉϥ
+</norm>
+</orig>
+<orig orig="ⲙⲁⲑⲏⲧⲏⲥ">
+<norm xml:id="u6" func="conj" head="#u2" pos="N" lemma="ⲙⲁⲑⲏⲧⲏⲥ" norm="ⲙⲁⲑⲏⲧⲏⲥ">
+<lang lang="Greek">
+ⲙⲁⲑⲏⲧⲏⲥ
+</lang>
+</norm>
+</orig>
+</entity>
+</norm_group>
+</orig_group>
+<orig_group orig_group="·">
+<norm_group norm_group="·">
+<orig orig="·">
+<norm xml:id="u7" func="punct" head="#u9" pos="PUNCT" lemma="·" norm="·">
+·
+</norm>
+</orig>
+</norm_group>
+</orig_group>
+<orig_group orig_group="ϫⲉⲙⲟ̇ⲟⲩϣⲉ">
+<norm_group norm_group="ϫⲉⲙⲟⲟϣⲉ">
+<orig orig="ϫⲉ">
+<norm xml:id="u8" func="mark" head="#u9" pos="CONJ" lemma="ϫⲉ" norm="ϫⲉ">
+ϫⲉ
+</norm>
+</orig>
+</lb_n>
+<lb_n lb_n="3">
+<multiword multiword="ⲙⲟⲟϣⲉ ϩⲛ">
+<orig orig="ⲙⲟ̇ⲟⲩϣⲉ">
+<norm xml:id="u9" func="ccomp" head="#u2" pos="V" lemma="ⲙⲟⲟϣⲉ" norm="ⲙⲟⲟϣⲉ">
+ⲙⲟ̇ⲟⲩϣⲉ
+</norm>
+</orig>
+</norm_group>
+</orig_group>
+<orig_group orig_group="ϩⲛ̇ⲧⲉϩⲓ̇ⲏ̇">
+<norm_group norm_group="ϩⲛⲧⲉϩⲓⲏ">
+<orig orig="ϩⲛ̇">
+<norm xml:id="u10" func="case" head="#u12" pos="PREP" lemma="ϩⲛ" norm="ϩⲛ">
+ϩⲛ̇
+</norm>
+</orig>
+</multiword>
+<entity head_tok="#u12" text="ⲧⲉ ϩⲓⲏ ⲙ ⲡ ⲣⲣⲟ" entity="place">
+<orig orig="ⲧⲉ">
+<norm xml:id="u11" func="det" head="#u12" pos="ART" lemma="ⲡ" norm="ⲧⲉ">
+ⲧⲉ
+</norm>
+</orig>
+<orig orig="ϩⲓ̇ⲏ̇">
+<norm xml:id="u12" func="obl" head="#u9" pos="N" lemma="ϩⲓⲏ" norm="ϩⲓⲏ">
+ϩⲓ̇ⲏ̇
+</norm>
+</orig>
+</norm_group>
+</orig_group>
+<orig_group orig_group="ⲙ̇ⲡⲣ̇ⲣ̇ⲟ">
+<norm_group norm_group="ⲙⲡⲣⲣⲟ">
+<orig orig="ⲙ̇">
+<norm xml:id="u13" func="case" head="#u15" pos="PREP" lemma="ⲛ" norm="ⲙ">
+ⲙ̇
+</norm>
+</orig>
+</lb_n>
+<lb_n lb_n="4">
+<entity head_tok="#u15" text="ⲡ ⲣⲣⲟ" entity="person">
+<orig orig="ⲡ">
+<norm xml:id="u14" func="det" head="#u15" pos="ART" lemma="ⲡ" norm="ⲡ">
+ⲡ
+</norm>
+</orig>
+<orig orig="ⲣ̇ⲣ̇ⲟ">
+<norm xml:id="u15" func="nmod" head="#u12" pos="N" lemma="ⲣⲣⲟ" norm="ⲣⲣⲟ">
+ⲣ̇ⲣ̇ⲟ
+</norm>
+</orig>
+</entity>
+</norm_group>
+</orig_group>
+</entity>
+<orig_group orig_group="·">
+<norm_group norm_group="·">
+<orig orig="·">
+<norm xml:id="u16" func="punct" head="#u2" pos="PUNCT" lemma="·" norm="·">
+<hi_rend hi_rend="red 5_space_right">
+·
+</hi_rend>
+</norm>
+</orig>
+</norm_group>
+</orig_group>
+</arabic>
+</translation>
+<translation translation="and count the miles and do not be discouraged.'">
+<arabic arabic=".وَاحْسِبُوا اَلْأمْيَالَ وَلَنْ تَتَعَبُوا">
+<orig_group orig_group="ⲁⲩⲱ̇">
+<norm_group norm_group="ⲁⲩⲱ">
+<orig orig="ⲁⲩⲱ̇">
+<norm xml:id="u17" func="cc" head="#u18" new_sent="true" pos="CONJ" lemma="ⲁⲩⲱ" norm="ⲁⲩⲱ">
+ⲁⲩⲱ̇
+</norm>
+</orig>
+</norm_group>
+</orig_group>
+</lb_n>
+<lb_n lb_n="5">
+<orig_group orig_group="ⲱ̇ⲡ">
+<norm_group norm_group="ⲱⲡ">
+<orig orig="ⲱ̇ⲡ">
+<norm xml:id="u18" func="root" pos="V" lemma="ⲱⲡ" norm="ⲱⲡ">
+ⲱ̇ⲡ
+</norm>
+</orig>
+</norm_group>
+</orig_group>
+<orig_group orig_group="ⲛ̇ⲥⲁⲙ̇ⲙⲓ̇ⲗⲓ̇ⲟⲛ">
+<norm_group norm_group="ⲛⲥⲁⲙⲙⲓⲗⲓⲟⲛ">
+<orig orig="ⲛ̇ⲥⲁ">
+<norm xml:id="u19" func="case" head="#u21" pos="PREP" lemma="ⲛⲥⲁ" norm="ⲛⲥⲁ">
+ⲛ̇ⲥⲁ
+</norm>
+</orig>
+<entity head_tok="#u21" text="ⲙ ⲙⲓⲗⲓⲟⲛ" entity="abstract">
+<orig orig="ⲙ̇">
+<norm xml:id="u20" func="det" head="#u21" pos="ART" lemma="ⲡ" norm="ⲙ">
+ⲙ̇
+</norm>
+</orig>
+<orig orig="ⲙⲓ̇ⲗⲓ̇ⲟⲛ">
+<norm xml:id="u21" func="obl" head="#u18" pos="N" lemma="ⲙⲓⲗⲓⲟⲛ" norm="ⲙⲓⲗⲓⲟⲛ">
+<lang lang="Greek">
+ⲙⲓ̇ⲗⲓ̇ⲟⲛ
+</lang>
+</norm>
+</orig>
+</entity>
+</norm_group>
+</orig_group>
+</lb_n>
+<lb_n lb_n="6">
+<orig_group orig_group="ⲁⲩⲱ̇">
+<norm_group norm_group="ⲁⲩⲱ">
+<orig orig="ⲁⲩⲱ̇">
+<norm xml:id="u22" func="cc" head="#u26" pos="CONJ" lemma="ⲁⲩⲱ" norm="ⲁⲩⲱ">
+ⲁⲩⲱ̇
+</norm>
+</orig>
+</norm_group>
+</orig_group>
+<orig_group orig_group="ⲛ̇ⲧⲉⲧⲛⲁϣⲱⲥ̇ⲙ">
+<norm_group norm_group="ⲛⲧⲉⲧⲛⲁϣⲱⲥⲙ">
+<orig orig="ⲛ̇">
+<norm xml:id="u23" func="advmod" head="#u26" pos="NEG" lemma="ⲛ" norm="ⲛ">
+ⲛ̇
+</norm>
+</orig>
+<orig orig="ⲧⲉⲧ">
+<norm xml:id="u24" func="nsubj" head="#u26" pos="PPERS" lemma="ⲛⲧⲱⲧⲛ" norm="ⲧⲉⲧ">
+ⲧⲉⲧ
+</norm>
+</orig>
+<orig orig="ⲛⲁ">
+<norm xml:id="u25" func="aux" head="#u26" pos="FUT" lemma="ⲛⲁ" norm="ⲛⲁ">
+ⲛⲁ
+</norm>
+</orig>
+<orig orig="ϣⲱⲥ̇ⲙ">
+<norm xml:id="u26" func="conj" head="#u18" pos="V" lemma="ϣⲱⲥⲙ" norm="ϣⲱⲥⲙ">
+ϣⲱ
+</lb_n>
+<lb_n lb_n="7">
+ⲥ̇ⲙ
+</norm>
+</orig>
+</norm_group>
+</orig_group>
+<orig_group orig_group="ⲁ̇ⲛ">
+<norm_group norm_group="ⲁⲛ">
+<orig orig="ⲁ̇ⲛ">
+<norm xml:id="u27" func="advmod" head="#u26" pos="NEG" lemma="ⲁⲛ" norm="ⲁⲛ">
+ⲁ̇ⲛ
+</norm>
+</orig>
+</norm_group>
+</orig_group>
+<orig_group orig_group="·ⲻ">
+<norm_group norm_group=".">
+<orig orig="·ⲻ">
+<norm xml:id="u28" func="punct" head="#u18" pos="PUNCT" lemma="." norm=".">
+<hi_rend hi_rend="red">
+·ⲻ
+</hi_rend>
+</norm>
+</orig>
+</norm_group>
+</orig_group>
+</lb_n>
+</arabic>
+</translation>
+</vid_n>
+</chapter_n>
+</verse_n>
+</cb_n>
+</pb_xml_id>
+</meta>

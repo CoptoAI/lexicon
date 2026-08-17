@@ -76,10 +76,10 @@ export const SearchBar: React.FC<SearchBarProps> = ({
       </div>
 
       {/* Origin Filter and Sort Row */}
-      <div className="filter-row" style={{ justifyContent: 'space-between' }}>
+      <div className="filter-row filter-row-origin" style={{ justifyContent: 'space-between' }}>
         <div className="filter-group">
           <span className="filter-label">{t.originLabel}</span>
-          <div className="dialect-pills">
+          <div className="dialect-pills scrollable-pills">
             <button
               className={`dialect-pill ${filters.origin === 'all' ? 'active' : ''}`}
               onClick={() => onChangeFilters({ origin: 'all' })}
@@ -104,11 +104,11 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         </div>
 
         {/* Sort and Anki Export */}
-        <div className="filter-group" style={{ marginLeft: 'auto' }}>
+        <div className="filter-group sort-anki-group" style={{ marginLeft: 'auto' }}>
           <span className="filter-label">{t.sortLabel}</span>
           <button
             className={`btn-nav ${filters.sortBy === 'alpha' ? 'active' : ''}`}
-            style={{ padding: '4px 10px', fontSize: '12px' }}
+            style={{ padding: '6px 12px', fontSize: '12px' }}
             onClick={() => onChangeFilters({ sortBy: 'alpha' })}
             title="Sort Alphabetically"
           >
@@ -117,7 +117,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           </button>
           <button
             className={`btn-nav ${filters.sortBy === 'freq' ? 'active' : ''}`}
-            style={{ padding: '4px 10px', fontSize: '12px' }}
+            style={{ padding: '6px 12px', fontSize: '12px' }}
             onClick={() => onChangeFilters({ sortBy: 'freq' })}
             title="Sort by Corpus Frequency"
           >
@@ -128,7 +128,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           {hasResults && (
             <button
               className="btn-nav"
-              style={{ padding: '4px 10px', fontSize: '12px', borderColor: 'var(--border-gold)' }}
+              style={{ padding: '6px 12px', fontSize: '12px', borderColor: 'var(--border-gold)' }}
               onClick={onExportAnki}
               title="Export filtered words to Anki Flashcard CSV deck"
             >
@@ -140,10 +140,10 @@ export const SearchBar: React.FC<SearchBarProps> = ({
       </div>
 
       {/* Dialect Filter Row */}
-      <div className="filter-row">
-        <div className="filter-group">
+      <div className="filter-row filter-row-dialects">
+        <div className="filter-group" style={{ width: '100%' }}>
           <span className="filter-label">{t.dialectLabel}</span>
-          <div className="dialect-pills">
+          <div className="dialect-pills scrollable-pills">
             {DIALECT_OPTIONS.map((d) => (
               <button
                 key={d.code}

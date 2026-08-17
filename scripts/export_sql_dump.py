@@ -109,16 +109,22 @@ CREATE TABLE inflections (
 );
 
 CREATE TABLE citations (
-    tla TEXT,
-    lemma TEXT,
-    urn TEXT,
-    chapter TEXT,
-    verse TEXT,
-    priority INTEGER,
-    notes TEXT
+    id TEXT PRIMARY KEY,
+    lemma TEXT NOT NULL,
+    lemma_clean TEXT NOT NULL,
+    reference TEXT NOT NULL,
+    reference_ar TEXT,
+    urn TEXT NOT NULL,
+    genre TEXT NOT NULL,
+    dialect TEXT NOT NULL,
+    source_name TEXT NOT NULL,
+    coptic_text TEXT NOT NULL,
+    english_translation TEXT,
+    arabic_translation TEXT
 );
 
-CREATE INDEX idx_citations_tla ON citations(tla);
+CREATE INDEX idx_citations_lemma_clean ON citations(lemma_clean);
+CREATE INDEX idx_citations_genre ON citations(genre);
 
 CREATE TABLE lemmas (
     word TEXT,
@@ -188,7 +194,7 @@ CREATE VIRTUAL TABLE entries_fts USING fts5(
 
         # 6. Export citations (batch of 20)
         print("Exporting citations...")
-        cur.execute("SELECT tla, lemma, urn, chapter, verse, priority, notes FROM citations")
+        cur.execute("SELECT id, lemma, lemma_clean, reference, reference_ar, urn, genre, dialect, source_name, coptic_text, english_translation, arabic_translation FROM citations")
         cits = cur.fetchall()
         for i in range(0, len(cits), 20):
             batch = cits[i:i+20]

@@ -119,3 +119,5 @@ export function cleanCoptic(text: string): string {
     .normalize('NFC')
     .trim();
 }
+
+export const stripDiacritics = cleanCoptic;

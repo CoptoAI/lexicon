@@ -1,4 +1,5 @@
 import { DictionaryEntry, SearchFilters, NetworkData, DatabaseStats } from '../types/dictionary';
+import { searchOffline, getEntryOffline } from './offlineDb';
 
 export async function fetchStats(): Promise<DatabaseStats> {
   try {
@@ -12,6 +13,11 @@ export async function fetchStats(): Promise<DatabaseStats> {
 }
 
 export async function searchDictionary(filters: SearchFilters, limit = 50): Promise<{ results: DictionaryEntry[]; count: number }> {
+  // If browser is offline, directly use offline DB
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    return await searchOffline(filters, limit);
+  }
+
   try {
     const params = new URLSearchParams();
     if (filters.query) params.set('q', filters.query);
@@ -30,19 +36,23 @@ export async function searchDictionary(filters: SearchFilters, limit = 50): Prom
       count: data.count || (data.results ? data.results.length : 0)
     };
   } catch (err) {
-    console.error('API search error:', err);
-    return { results: [], count: 0 };
+    console.warn('API search failed, attempting offline fallback:', err);
+    return await searchOffline(filters, limit);
   }
 }
 
 export async function fetchEntryDetail(idOrXml: string | number): Promise<DictionaryEntry | null> {
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    return await getEntryOffline(idOrXml);
+  }
+
   try {
     const res = await fetch(`/api/entries/${encodeURIComponent(idOrXml)}`);
     if (!res.ok) throw new Error('Entry not found');
     return (await res.json()) as DictionaryEntry;
   } catch (err) {
-    console.error('Fetch entry error:', err);
-    return null;
+    console.warn('Fetch entry detail failed, trying offline store:', err);
+    return await getEntryOffline(idOrXml);
   }
 }
 

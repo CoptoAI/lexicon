@@ -1,32 +1,56 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DictionaryEntry, Sense, FormItem, EgyptianEtymology, InflectionParadigm, ManuscriptCitation } from '../types/dictionary';
 import { DIALECT_DESCRIPTIONS, POS_DESCRIPTIONS } from '../utils/coptic';
 import { playSynthesizedCoptic } from '../utils/audio';
 import { exportAnkiDeck } from '../services/api';
+import { isWordSaved, toggleSaveWord, subscribeSavedWords } from '../services/savedWords';
 import { RichEtymology } from '../utils/richText';
 import { ConcordanceViewer } from './ConcordanceViewer';
-import { getConcordanceExamples } from '../services/concordance';
-import { X, Copy, Check, ExternalLink, Share2, Sparkles, BookOpen, Volume2, Download, Quote, ScrollText, Grid } from 'lucide-react';
+import { fetchConcordanceExamples, ManuscriptExample } from '../services/concordance';
+import { X, Copy, Check, ExternalLink, Share2, Sparkles, BookOpen, Volume2, Download, Quote, ScrollText, Grid, Bookmark } from 'lucide-react';
 
 interface EntryDetailModalProps {
   entry: DictionaryEntry | null;
   onClose: () => void;
   onViewNetwork: (word: string) => void;
   onSearchWord: (word: string) => void;
+  isArabicUi?: boolean;
 }
 
 export const EntryDetailModal: React.FC<EntryDetailModalProps> = ({
   entry,
   onClose,
   onViewNetwork,
-  onSearchWord
+  onSearchWord,
+  isArabicUi = false
 }) => {
   const [copied, setCopied] = useState<string | null>(null);
   const [activeDialectIpa, setActiveDialectIpa] = useState<'S' | 'B'>('S');
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [activeTab, setActiveTab] = useState<'details' | 'dialects' | 'concordance'>('details');
+  const [concordanceExamples, setConcordanceExamples] = useState<ManuscriptExample[]>([]);
+  const [isSaved, setIsSaved] = useState(entry ? isWordSaved(entry.id) : false);
+
+  useEffect(() => {
+    if (!entry) return;
+    setIsSaved(isWordSaved(entry.id));
+    const unsub = subscribeSavedWords(() => {
+      setIsSaved(isWordSaved(entry.id));
+    });
+    return unsub;
+  }, [entry?.id]);
 
   if (!entry) return null;
+
+  useEffect(() => {
+    let isMounted = true;
+    fetchConcordanceExamples(entry.coptic_name).then((res) => {
+      if (isMounted) setConcordanceExamples(res);
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, [entry.coptic_name]);
 
   const parseJsonSafe = <T,>(jsonStr?: string, fallback: T | null = null): T | null => {
     if (!jsonStr) return fallback;
@@ -45,7 +69,6 @@ export const EntryDetailModal: React.FC<EntryDetailModalProps> = ({
   const egyptianRoot = parseJsonSafe<EgyptianEtymology>(entry.egyptian_json, null);
   const inflectionParadigm = parseJsonSafe<InflectionParadigm>(entry.inflection_json, null);
   const citations = parseJsonSafe<ManuscriptCitation[]>(entry.citations_json, []) || [];
-  const concordanceExamples = getConcordanceExamples(entry.coptic_name);
 
   const handleCopy = (text: string, type: string) => {
     navigator.clipboard.writeText(text);
@@ -54,9 +77,19 @@ export const EntryDetailModal: React.FC<EntryDetailModalProps> = ({
   };
 
   const handlePlayAudio = (dialect: 'S' | 'B') => {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try { navigator.vibrate(10); } catch (e) {}
+    }
     setIsPlayingAudio(true);
     playSynthesizedCoptic(entry.coptic_name, dialect);
     setTimeout(() => setIsPlayingAudio(false), 1000);
+  };
+
+  const handleToggleSave = () => {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try { navigator.vibrate(15); } catch (e) {}
+    }
+    toggleSaveWord(entry);
   };
 
   const handleCopyBibtex = () => {
@@ -91,8 +124,11 @@ export const EntryDetailModal: React.FC<EntryDetailModalProps> = ({
   });
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-backdrop modal-backdrop-sheet" onClick={onClose}>
+      <div className="modal-content modal-content-sheet" onClick={(e) => e.stopPropagation()}>
+        {/* Mobile Swipe / Drag Handle */}
+        <div className="sheet-drag-handle" />
+
         <button className="modal-close-btn" onClick={onClose}>
           <X size={20} />
         </button>
@@ -138,6 +174,16 @@ export const EntryDetailModal: React.FC<EntryDetailModalProps> = ({
           </div>
 
           <div style={{ marginLeft: 'auto', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            <button
+              className={`btn-nav ${isSaved ? 'active' : ''}`}
+              onClick={handleToggleSave}
+              style={{ borderColor: isSaved ? 'var(--accent-gold)' : undefined, color: isSaved ? 'var(--accent-gold)' : undefined }}
+              title={isSaved ? 'Remove from Saved' : 'Save for offline revision'}
+            >
+              <Bookmark size={14} fill={isSaved ? 'currentColor' : 'none'} />
+              <span>{isSaved ? 'Saved' : 'Save'}</span>
+            </button>
+
             <button
               className="btn-nav"
               onClick={() => handleCopy(entry.coptic_name, 'word')}
@@ -186,21 +232,21 @@ export const EntryDetailModal: React.FC<EntryDetailModalProps> = ({
             onClick={() => setActiveTab('details')}
           >
             <BookOpen size={14} />
-            <span>Lexicon &amp; Grammar</span>
+            <span>{isArabicUi ? 'المعجم وقواعد اللغة' : 'Lexicon & Grammar'}</span>
           </button>
           <button
             className={`btn-nav ${activeTab === 'dialects' ? 'active' : ''}`}
             onClick={() => setActiveTab('dialects')}
           >
             <Grid size={14} />
-            <span>Dialect Matrix</span>
+            <span>{isArabicUi ? 'مصفوفة اللهجات' : 'Dialect Matrix'}</span>
           </button>
           <button
             className={`btn-nav ${activeTab === 'concordance' ? 'active' : ''}`}
             onClick={() => setActiveTab('concordance')}
           >
             <ScrollText size={14} />
-            <span>Manuscript Concordance</span>
+            <span>{isArabicUi ? 'شواهد المخطوطات' : 'Manuscript Concordance'}</span>
             {concordanceExamples.length > 0 && (
               <span className="concordance-badge-count" style={{ marginLeft: '4px' }}>
                 {concordanceExamples.length}
@@ -210,7 +256,7 @@ export const EntryDetailModal: React.FC<EntryDetailModalProps> = ({
         </div>
 
         {activeTab === 'concordance' ? (
-          <ConcordanceViewer coptic_name={entry.coptic_name} xml_id={entry.xml_id} />
+          <ConcordanceViewer coptic_name={entry.coptic_name} xml_id={entry.xml_id} isArabicUi={isArabicUi} />
         ) : activeTab === 'dialects' ? (
           /* Multi-Dialect Comparison Matrix View */
           <div style={{ background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '18px 20px' }}>
