@@ -119,3 +119,37 @@ export interface NetworkData {
   nodes: NetworkNode[];
   links: NetworkLink[];
 }
+
+export interface BibleBookInfo {
+  code: string;
+  canon_order: number;
+  name_en: string;
+  name_ar: string;
+  name_cop: string;
+  chapters: number;
+}
+
+export interface ParallelBibleVerse {
+  verse_id: string;
+  canon_order?: number;
+  book: string;
+  book_name_en: string;
+  book_name_ar: string;
+  book_name_cop: string;
+  chapter: number;
+  verse: number;
+  coptic_sahidic: string;
+  coptic_bohairic: string;
+  coptic_bohairic_plain?: string;
+  arabic_nav?: string;
+  arabic_svd?: string;
+  arabic_wbtc?: string;
+  english_kjv?: string;
+}
+
+export interface BibleChapterResponse {
+  book: BibleBookInfo;
+  chapter: number;
+  total_chapters: number;
+  verses: ParallelBibleVerse[];
+}

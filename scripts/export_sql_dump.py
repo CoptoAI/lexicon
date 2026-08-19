@@ -39,9 +39,11 @@ def generate_d1_export():
         f.write("DROP TABLE IF EXISTS egyptian_etymologies;\n")
         f.write("DROP TABLE IF EXISTS inflections;\n")
         f.write("DROP TABLE IF EXISTS citations;\n")
+        f.write("DROP TABLE IF EXISTS bible_verses;\n")
         f.write("DROP TABLE IF EXISTS lemmas;\n")
         f.write("DROP TABLE IF EXISTS collocates;\n")
-        f.write("DROP TABLE IF EXISTS entries_fts;\n\n")
+        f.write("DROP TABLE IF EXISTS entries_fts;\n")
+        f.write("DROP TABLE IF EXISTS bible_verses_fts;\n\n")
 
         # 2. Create tables
         f.write("""CREATE TABLE entries (
@@ -150,6 +152,28 @@ CREATE TABLE collocates (
 
 CREATE INDEX idx_collocates_lemma ON collocates(lemma);
 
+CREATE TABLE bible_verses (
+    verse_id TEXT PRIMARY KEY,
+    canon_order INTEGER NOT NULL,
+    book TEXT NOT NULL,
+    book_name_en TEXT NOT NULL,
+    book_name_ar TEXT NOT NULL,
+    book_name_cop TEXT NOT NULL,
+    chapter INTEGER NOT NULL,
+    verse INTEGER NOT NULL,
+    coptic_sahidic TEXT NOT NULL,
+    coptic_bohairic TEXT NOT NULL,
+    coptic_bohairic_plain TEXT,
+    arabic_nav TEXT,
+    arabic_svd TEXT,
+    arabic_wbtc TEXT,
+    english_kjv TEXT
+);
+
+CREATE INDEX idx_bv_book_chapter ON bible_verses(book, chapter);
+CREATE INDEX idx_bv_canon ON bible_verses(canon_order);
+CREATE INDEX idx_bv_book ON bible_verses(book);
+
 CREATE VIRTUAL TABLE entries_fts USING fts5(
     id UNINDEXED,
     coptic_name,
@@ -161,6 +185,17 @@ CREATE VIRTUAL TABLE entries_fts USING fts5(
     etym,
     pos,
     origin,
+    tokenize='trigram'
+);
+
+CREATE VIRTUAL TABLE bible_verses_fts USING fts5(
+    verse_id UNINDEXED,
+    coptic_sahidic,
+    coptic_bohairic,
+    coptic_bohairic_plain,
+    arabic_nav,
+    arabic_svd,
+    english_kjv,
     tokenize='trigram'
 );
 \n""")
@@ -219,9 +254,21 @@ CREATE VIRTUAL TABLE entries_fts USING fts5(
             val_strs = ["(" + ", ".join(sql_escape(v) for v in row) + ")" for row in batch]
             f.write(f"INSERT INTO collocates VALUES {', '.join(val_strs)};\n")
 
-        # 9. Populate entries_fts via server-side SELECT query
+        # 9. Export bible_verses (batch of 25)
+        print("Exporting bible_verses...")
+        cur.execute("SELECT verse_id, canon_order, book, book_name_en, book_name_ar, book_name_cop, chapter, verse, coptic_sahidic, coptic_bohairic, coptic_bohairic_plain, arabic_nav, arabic_svd, arabic_wbtc, english_kjv FROM bible_verses ORDER BY canon_order ASC")
+        verses = cur.fetchall()
+        for i in range(0, len(verses), 25):
+            batch = verses[i:i+25]
+            val_strs = ["(" + ", ".join(sql_escape(v) for v in row) + ")" for row in batch]
+            f.write(f"INSERT INTO bible_verses VALUES {', '.join(val_strs)};\n")
+
+        # 10. Populate FTS5 virtual tables via server-side SELECT query
         f.write("\n-- Populate Trigram FTS5 index from entries\n")
         f.write("INSERT INTO entries_fts(id, coptic_name, coptic_clean, en_text, de_text, fr_text, ar_text, etym, pos, origin) SELECT id, coptic_name, coptic_clean, en, de, fr, ar, etym, pos, origin FROM entries;\n")
+
+        f.write("\n-- Populate Trigram FTS5 index from bible_verses\n")
+        f.write("INSERT INTO bible_verses_fts(verse_id, coptic_sahidic, coptic_bohairic, coptic_bohairic_plain, arabic_nav, arabic_svd, english_kjv) SELECT verse_id, coptic_sahidic, coptic_bohairic, coptic_bohairic_plain, arabic_nav, arabic_svd, english_kjv FROM bible_verses;\n")
 
     con.close()
     file_size_mb = os.path.getsize(dump_file) / (1024 * 1024)

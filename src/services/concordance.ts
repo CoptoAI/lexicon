@@ -60,25 +60,26 @@ export function normalizeCoptic(text: string): string {
 /**
  * Asynchronously loads manuscript concordance sentences from /api/concordance or static JSON
  */
-export async function fetchConcordanceExamples(coptic_name: string): Promise<ManuscriptExample[]> {
+export async function fetchConcordanceExamples(coptic_name: string, dialect: string = 'all'): Promise<ManuscriptExample[]> {
   if (!coptic_name) return [];
 
   const rawTarget = coptic_name.trim();
   const cleanTarget = normalizeCoptic(rawTarget);
+  const cacheKey = `${cleanTarget}_${dialect}`;
 
-  if (concordanceCache.has(cleanTarget)) {
-    return concordanceCache.get(cleanTarget)!;
+  if (concordanceCache.has(cacheKey)) {
+    return concordanceCache.get(cacheKey)!;
   }
 
   // 1. Try D1 API endpoint
   try {
-    const res = await fetch(`/api/concordance?lemma=${encodeURIComponent(cleanTarget)}`);
+    const dialectQuery = dialect !== 'all' ? `&dialect=${encodeURIComponent(dialect)}` : '';
+    const res = await fetch(`/api/concordance?lemma=${encodeURIComponent(cleanTarget)}${dialectQuery}`);
     if (res.ok) {
       const data = (await res.json()) as { citations?: ManuscriptExample[] };
       if (data && Array.isArray(data.citations) && data.citations.length > 0) {
         const mapped = data.citations.map(ensureScriptoriumUrl);
-        concordanceCache.set(cleanTarget, mapped);
-        concordanceCache.set(rawTarget, mapped);
+        concordanceCache.set(cacheKey, mapped);
         return mapped;
       }
     }

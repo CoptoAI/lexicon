@@ -16,13 +16,14 @@ export const ConcordanceViewer: React.FC<ConcordanceViewerProps> = ({
   const [examples, setExamples] = useState<ManuscriptExample[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [selectedGenre, setSelectedGenre] = useState<string>('all');
+  const [selectedDialect, setSelectedDialect] = useState<string>('all');
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
     setIsLoading(true);
 
-    fetchConcordanceExamples(coptic_name)
+    fetchConcordanceExamples(coptic_name, selectedDialect)
       .then((res) => {
         if (isMounted) {
           setExamples(res);
@@ -39,15 +40,19 @@ export const ConcordanceViewer: React.FC<ConcordanceViewerProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [coptic_name]);
+  }, [coptic_name, selectedDialect]);
 
   const biblicalCount = examples.filter((ex) => ex.genre === 'biblical').length;
   const monasticCount = examples.filter((ex) => ex.genre === 'monastic').length;
   const patristicCount = examples.filter((ex) => ex.genre === 'patristic').length;
 
+  const sahidicCount = examples.filter((ex) => ex.dialect === 'Sahidic').length;
+  const bohairicCount = examples.filter((ex) => ex.dialect === 'Bohairic').length;
+
   const filteredExamples = examples.filter((ex) => {
-    if (selectedGenre === 'all') return true;
-    return ex.genre === selectedGenre;
+    if (selectedGenre !== 'all' && ex.genre !== selectedGenre) return false;
+    if (selectedDialect !== 'all' && ex.dialect !== selectedDialect) return false;
+    return true;
   });
 
   const handleCopyCitation = (ex: ManuscriptExample) => {
@@ -96,26 +101,49 @@ export const ConcordanceViewer: React.FC<ConcordanceViewerProps> = ({
           )}
         </div>
 
-        {/* Genre Filter Pills */}
+        {/* Filter Pills (Genre + Dialect) */}
         {!isLoading && examples.length > 0 && (
-          <div className="concordance-filter-group">
-            {[
-              { id: 'all', label: isArabicUi ? 'الكل' : 'All', count: examples.length },
-              { id: 'biblical', label: isArabicUi ? 'كتاب مقدس' : 'Biblical', count: biblicalCount },
-              { id: 'monastic', label: isArabicUi ? 'نصوص شنودة' : 'Shenoute', count: monasticCount },
-              { id: 'patristic', label: isArabicUi ? 'بستان الرهبان' : 'Desert Fathers', count: patristicCount }
-            ]
-              .filter((f) => f.id === 'all' || f.count > 0)
-              .map((f) => (
-                <button
-                  key={f.id}
-                  className={`concordance-filter-pill ${selectedGenre === f.id ? 'active' : ''}`}
-                  onClick={() => setSelectedGenre(f.id)}
-                >
-                  <span>{f.label}</span>
-                  <span className="pill-count">({f.count})</span>
-                </button>
-              ))}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+            {/* Dialect Filter */}
+            <div className="concordance-filter-group">
+              {[
+                { id: 'all', label: isArabicUi ? 'جميع اللهجات' : 'All Dialects', count: examples.length },
+                { id: 'Sahidic', label: isArabicUi ? 'Ϩ صعيدي' : 'Ϩ Sahidic', count: sahidicCount },
+                { id: 'Bohairic', label: isArabicUi ? 'Ϧ بحيري' : 'Ϧ Bohairic', count: bohairicCount }
+              ]
+                .filter((f) => f.id === 'all' || f.count > 0)
+                .map((f) => (
+                  <button
+                    key={f.id}
+                    className={`concordance-filter-pill dialect-pill ${selectedDialect === f.id ? 'active' : ''}`}
+                    onClick={() => setSelectedDialect(f.id)}
+                  >
+                    <span>{f.label}</span>
+                    <span className="pill-count">({f.count})</span>
+                  </button>
+                ))}
+            </div>
+
+            {/* Genre Filter */}
+            <div className="concordance-filter-group">
+              {[
+                { id: 'all', label: isArabicUi ? 'جميع المصادر' : 'All Genres', count: examples.length },
+                { id: 'biblical', label: isArabicUi ? 'كتاب مقدس' : 'Biblical', count: biblicalCount },
+                { id: 'monastic', label: isArabicUi ? 'نصوص شنودة' : 'Shenoute', count: monasticCount },
+                { id: 'patristic', label: isArabicUi ? 'بستان الرهبان' : 'Desert Fathers', count: patristicCount }
+              ]
+                .filter((f) => f.id === 'all' || f.count > 0)
+                .map((f) => (
+                  <button
+                    key={f.id}
+                    className={`concordance-filter-pill ${selectedGenre === f.id ? 'active' : ''}`}
+                    onClick={() => setSelectedGenre(f.id)}
+                  >
+                    <span>{f.label}</span>
+                    <span className="pill-count">({f.count})</span>
+                  </button>
+                ))}
+            </div>
           </div>
         )}
       </div>

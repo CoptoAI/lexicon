@@ -1,21 +1,41 @@
 import React from 'react';
 import { X, Info, ExternalLink, ShieldCheck, Award, Globe, Sparkles } from 'lucide-react';
+import { useSwipeGesture } from '../utils/useSwipeGesture';
 
 interface AboutModalProps {
   onClose: () => void;
 }
 
 export const AboutModal: React.FC<AboutModalProps> = ({ onClose }) => {
+  const { dragOffset, isDragging, touchHandlers } = useSwipeGesture({
+    onSwipeDown: onClose,
+    threshold: 80,
+    enableVerticalDrag: true
+  });
+
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <button className="modal-close-btn" onClick={onClose}>
+    <div className="modal-backdrop modal-backdrop-sheet" onClick={onClose}>
+      <div
+        className="modal-content modal-content-sheet"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          transform: isDragging && dragOffset > 0 ? `translateY(${dragOffset}px)` : undefined,
+          transition: isDragging ? 'none' : 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+          opacity: isDragging && dragOffset > 40 ? Math.max(0.6, 1 - dragOffset / 400) : 1
+        }}
+      >
+        {/* Mobile Swipe / Drag Handle */}
+        <div className="sheet-drag-handle-touch-zone" {...touchHandlers}>
+          <div className="sheet-drag-handle" />
+        </div>
+
+        <button className="modal-close-btn" onClick={onClose} aria-label="Close">
           <X size={20} />
         </button>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
           <Info size={26} color="var(--accent-gold)" />
-          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '22px' }}>About CoptoLex (Copto.org)</h2>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '20px', margin: 0 }}>About CoptoLex (Copto.org)</h2>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '14px', lineHeight: '1.6' }}>
@@ -24,7 +44,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({ onClose }) => {
           </p>
 
           <div>
-            <h3 style={{ color: 'var(--accent-gold)', fontSize: '16px', marginBottom: '8px' }}>Lexicon Sources &amp; Foundations</h3>
+            <h3 style={{ color: 'var(--accent-gold)', fontSize: '15px', marginBottom: '8px' }}>Lexicon Sources &amp; Foundations</h3>
             <p>
               CoptoLex integrates foundational academic lexical resources:
             </p>
@@ -42,8 +62,8 @@ export const AboutModal: React.FC<AboutModalProps> = ({ onClose }) => {
           </div>
 
           <div>
-            <h3 style={{ color: 'var(--accent-gold)', fontSize: '16px', marginBottom: '8px' }}>Institutional Partners &amp; Contributing Projects</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px' }}>
+            <h3 style={{ color: 'var(--accent-gold)', fontSize: '15px', marginBottom: '8px' }}>Institutional Partners &amp; Contributing Projects</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px' }}>
               <a href="https://copto.org" target="_blank" rel="noopener noreferrer" className="btn-nav" style={{ justifyContent: 'space-between', borderColor: 'var(--border-gold)' }}>
                 <span style={{ color: 'var(--accent-gold)', fontWeight: 600 }}>Copto.org Initiative</span>
                 <ExternalLink size={14} />

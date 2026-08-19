@@ -11,6 +11,7 @@ import os
 import sys
 import gzip
 import re
+import time
 
 def clean_search_text(text: str) -> str:
     if not text:
@@ -88,17 +89,39 @@ def build_offline_dataset():
 
     print(f"Extracted {len(entries)} entries. Writing to {out_file}...")
     
-    # Write JSON
-    with open(out_file, 'w', encoding='utf-8') as f:
+    # Write JSON safely
+    temp_file = out_file + '.tmp'
+    with open(temp_file, 'w', encoding='utf-8') as f:
         json.dump(entries, f, ensure_ascii=False, separators=(',', ':'))
 
-    raw_size_mb = os.path.getsize(out_file) / (1024 * 1024)
-    print(f"Generated {out_file}: {raw_size_mb:.2f} MB (uncompressed)")
+    for attempt in range(5):
+        try:
+            if os.path.exists(out_file):
+                os.replace(temp_file, out_file)
+            else:
+                os.rename(temp_file, out_file)
+            break
+        except Exception as e:
+            if attempt == 4:
+                print(f"Notice on file write: {e}. Checking if file exists...")
+                if os.path.exists(out_file) and os.path.getsize(out_file) > 1000000:
+                    break
+            time.sleep(0.3)
 
-    # Measure gzip size
-    with open(out_file, 'rb') as f:
-        gzipped_data = gzip.compress(f.read())
-        print(f"Gzipped transfer size: {len(gzipped_data) / (1024 * 1024):.2f} MB")
+    if os.path.exists(temp_file):
+        try:
+            os.remove(temp_file)
+        except Exception:
+            pass
+
+    if os.path.exists(out_file):
+        raw_size_mb = os.path.getsize(out_file) / (1024 * 1024)
+        print(f"Generated {out_file}: {raw_size_mb:.2f} MB (uncompressed)")
+
+        # Measure gzip size
+        with open(out_file, 'rb') as f:
+            gzipped_data = gzip.compress(f.read())
+            print(f"Gzipped transfer size: {len(gzipped_data) / (1024 * 1024):.2f} MB")
 
     conn.close()
 

@@ -1,0 +1,245 @@
+[
+  {
+    "code": "MAT",
+    "canon_order": 1,
+    "name_en": "Matthew",
+    "name_ar": "إنجيل متى",
+    "name_cop": "ⲡⲉⲩⲁⲅⲅⲉⲗⲓⲟⲛ ⲕⲁⲧⲁ ⲙⲁⲧⲑⲁⲓⲟⲛ",
+    "chapters": 28,
+    "kjv_idx": 39
+  },
+  {
+    "code": "MAR",
+    "canon_order": 2,
+    "name_en": "Mark",
+    "name_ar": "إنجيل مرقس",
+    "name_cop": "ⲡⲉⲩⲁⲅⲅⲉⲗⲓⲟⲛ ⲕⲁⲧⲁ ⲙⲁⲣⲕⲟⲛ",
+    "chapters": 16,
+    "kjv_idx": 40
+  },
+  {
+    "code": "LUK",
+    "canon_order": 3,
+    "name_en": "Luke",
+    "name_ar": "إنجيل لوقا",
+    "name_cop": "ⲡⲉⲩⲁⲅⲅⲉⲗⲓⲟⲛ ⲕⲁⲧⲁ ⲗⲟⲩⲕⲁⲛ",
+    "chapters": 24,
+    "kjv_idx": 41
+  },
+  {
+    "code": "JOH",
+    "canon_order": 4,
+    "name_en": "John",
+    "name_ar": "إنجيل يوحنا",
+    "name_cop": "ⲡⲉⲩⲁⲅⲅⲉⲗⲓⲟⲛ ⲕⲁⲧⲁ ⲓⲱϩⲁⲛⲛⲏⲛ",
+    "chapters": 21,
+    "kjv_idx": 42
+  },
+  {
+    "code": "ACT",
+    "canon_order": 5,
+    "name_en": "Acts",
+    "name_ar": "سفر أعمال الرسل",
+    "name_cop": "ⲛⲉⲡⲣⲁⲝⲓⲥ ⲛⲛⲁⲡⲟⲥⲧⲟⲗⲟⲥ",
+    "chapters": 28,
+    "kjv_idx": 43
+  },
+  {
+    "code": "ROM",
+    "canon_order": 6,
+    "name_en": "Romans",
+    "name_ar": "الرسالة إلى أهل رومية",
+    "name_cop": "ⲧⲉⲡⲓⲥⲧⲟⲗⲏ ⲡⲣⲟⲥ ⲣⲱⲙⲁⲓⲟⲩⲥ",
+    "chapters": 16,
+    "kjv_idx": 44
+  },
+  {
+    "code": "1CO",
+    "canon_order": 7,
+    "name_en": "1 Corinthians",
+    "name_ar": "الرسالة الأولى إلى أهل كورنثوس",
+    "name_cop": "ⲧⲉⲡⲓⲥⲧⲟⲗⲏ ⲡⲣⲟⲥ ⲕⲟⲣⲓⲛⲑⲓⲟⲩⲥ ⲁ",
+    "chapters": 16,
+    "kjv_idx": 45
+  },
+  {
+    "code": "2CO",
+    "canon_order": 8,
+    "name_en": "2 Corinthians",
+    "name_ar": "الرسالة الثانية إلى أهل كورنثوس",
+    "name_cop": "ⲧⲉⲡⲓⲥⲧⲟⲗⲏ ⲡⲣⲟⲥ ⲕⲟⲣⲓⲛⲑⲓⲟⲩⲥ ⲃ",
+    "chapters": 13,
+    "kjv_idx": 46
+  },
+  {
+    "code": "GAL",
+    "canon_order": 9,
+    "name_en": "Galatians",
+    "name_ar": "الرسالة إلى أهل غلاطية",
+    "name_cop": "ⲧⲉⲡⲓⲥⲧⲟⲗⲏ ⲡⲣⲟⲥ ⲅⲁⲗⲁⲧⲁⲥ",
+    "chapters": 6,
+    "kjv_idx": 47
+  },
+  {
+    "code": "EPH",
+    "canon_order": 10,
+    "name_en": "Ephesians",
+    "name_ar": "الرسالة إلى أهل أفسس",
+    "name_cop": "ⲧⲉⲡⲓⲥⲧⲟⲗⲏ ⲡⲣⲟⲥ ⲉⲫⲉⲥⲓⲟⲩⲥ",
+    "chapters": 6,
+    "kjv_idx": 48
+  },
+  {
+    "code": "PHI",
+    "canon_order": 11,
+    "name_en": "Philippians",
+    "name_ar": "الرسالة إلى أهل فيلبي",
+    "name_cop": "ⲧⲉⲡⲓⲥⲧⲟⲗⲏ ⲡⲣⲟⲥ ⲫⲓⲗⲓⲡⲡⲏⲥⲓⲟⲩⲥ",
+    "chapters": 4,
+    "kjv_idx": 49
+  },
+  {
+    "code": "COL",
+    "canon_order": 12,
+    "name_en": "Colossians",
+    "name_ar": "الرسالة إلى أهل كولوسي",
+    "name_cop": "ⲧⲉⲡⲓⲥⲧⲟⲗⲏ ⲡⲣⲟⲥ ⲕⲟⲗⲟⲥⲥⲁⲉⲓⲥ",
+    "chapters": 4,
+    "kjv_idx": 50
+  },
+  {
+    "code": "1TH",
+    "canon_order": 13,
+    "name_en": "1 Thessalonians",
+    "name_ar": "الرسالة الأولى إلى أهل تسالونيكي",
+    "name_cop": "ⲧⲉⲡⲓⲥⲧⲟⲗⲏ ⲡⲣⲟⲥ ⲑⲉⲥⲥⲁⲗⲟⲛⲓⲕⲉⲩⲥ ⲁ",
+    "chapters": 5,
+    "kjv_idx": 51
+  },
+  {
+    "code": "2TH",
+    "canon_order": 14,
+    "name_en": "2 Thessalonians",
+    "name_ar": "الرسالة الثانية إلى أهل تسالونيكي",
+    "name_cop": "ⲧⲉⲡⲓⲥⲧⲟⲗⲏ ⲡⲣⲟⲥ ⲑⲉⲥⲥⲁⲗⲟⲛⲓⲕⲉⲩⲥ ⲃ",
+    "chapters": 3,
+    "kjv_idx": 52
+  },
+  {
+    "code": "1TI",
+    "canon_order": 15,
+    "name_en": "1 Timothy",
+    "name_ar": "الرسالة الأولى إلى تيموثاوس",
+    "name_cop": "ⲧⲉⲡⲓⲥⲧⲟⲗⲏ ⲡⲣⲟⲥ ⲧⲓⲙⲟⲑⲉⲟⲛ ⲁ",
+    "chapters": 6,
+    "kjv_idx": 53
+  },
+  {
+    "code": "2TI",
+    "canon_order": 16,
+    "name_en": "2 Timothy",
+    "name_ar": "الرسالة الثانية إلى تيموثاوس",
+    "name_cop": "ⲧⲉⲡⲓⲥⲧⲟⲗⲏ ⲡⲣⲟⲥ ⲧⲓⲙⲟⲑⲉⲟⲛ ⲃ",
+    "chapters": 4,
+    "kjv_idx": 54
+  },
+  {
+    "code": "TIT",
+    "canon_order": 17,
+    "name_en": "Titus",
+    "name_ar": "الرسالة إلى تيطس",
+    "name_cop": "ⲧⲉⲡⲓⲥⲧⲟⲗⲏ ⲡⲣⲟⲥ ⲧⲓⲧⲟⲛ",
+    "chapters": 3,
+    "kjv_idx": 55
+  },
+  {
+    "code": "PHM",
+    "canon_order": 18,
+    "name_en": "Philemon",
+    "name_ar": "الرسالة إلى فليمون",
+    "name_cop": "ⲧⲉⲡⲓⲥⲧⲟⲗⲏ ⲡⲣⲟⲥ ⲫⲓⲗⲏⲙⲟⲛⲁ",
+    "chapters": 1,
+    "kjv_idx": 56
+  },
+  {
+    "code": "HEB",
+    "canon_order": 19,
+    "name_en": "Hebrews",
+    "name_ar": "الرسالة إلى العبرانيين",
+    "name_cop": "ⲧⲉⲡⲓⲥⲧⲟⲗⲏ ⲡⲣⲟⲥ ϩⲉⲃⲣⲁⲓⲟⲩⲥ",
+    "chapters": 13,
+    "kjv_idx": 57
+  },
+  {
+    "code": "JAM",
+    "canon_order": 20,
+    "name_en": "James",
+    "name_ar": "رسالة يعقوب الرسول",
+    "name_cop": "ⲧⲉⲡⲓⲥⲧⲟⲗⲏ ⲛⲓⲁⲕⲱⲃⲟⲥ",
+    "chapters": 5,
+    "kjv_idx": 58
+  },
+  {
+    "code": "1PE",
+    "canon_order": 21,
+    "name_en": "1 Peter",
+    "name_ar": "رسالة بطرس الرسول الأولى",
+    "name_cop": "ⲧⲉⲡⲓⲥⲧⲟⲗⲏ ⲙⲡⲉⲧⲣⲟⲥ ⲁ",
+    "chapters": 5,
+    "kjv_idx": 59
+  },
+  {
+    "code": "2PE",
+    "canon_order": 22,
+    "name_en": "2 Peter",
+    "name_ar": "رسالة بطرس الرسول الثانية",
+    "name_cop": "ⲧⲉⲡⲓⲥⲧⲟⲗⲏ ⲙⲡⲉⲧⲣⲟⲥ ⲃ",
+    "chapters": 3,
+    "kjv_idx": 60
+  },
+  {
+    "code": "1JO",
+    "canon_order": 23,
+    "name_en": "1 John",
+    "name_ar": "رسالة يوحنا الرسول الأولى",
+    "name_cop": "ⲧⲉⲡⲓⲥⲧⲟⲗⲏ ⲛⲓⲱϩⲁⲛⲛⲏⲥ ⲁ",
+    "chapters": 5,
+    "kjv_idx": 61
+  },
+  {
+    "code": "2JO",
+    "canon_order": 24,
+    "name_en": "2 John",
+    "name_ar": "رسالة يوحنا الرسول الثانية",
+    "name_cop": "ⲧⲉⲡⲓⲥⲧⲟⲗⲏ ⲛⲓⲱϩⲁⲛⲛⲏⲥ ⲃ",
+    "chapters": 1,
+    "kjv_idx": 62
+  },
+  {
+    "code": "3JO",
+    "canon_order": 25,
+    "name_en": "3 John",
+    "name_ar": "رسالة يوحنا الرسول الثالثة",
+    "name_cop": "ⲧⲉⲡⲓⲥⲧⲟⲗⲏ ⲛⲓⲱϩⲁⲛⲛⲏⲥ ⲅ",
+    "chapters": 1,
+    "kjv_idx": 63
+  },
+  {
+    "code": "JUD",
+    "canon_order": 26,
+    "name_en": "Jude",
+    "name_ar": "رسالة يهوذا الرسول",
+    "name_cop": "ⲧⲉⲡⲓⲥⲧⲟⲗⲏ ⲛⲓⲟⲩⲇⲁ",
+    "chapters": 1,
+    "kjv_idx": 64
+  },
+  {
+    "code": "REV",
+    "canon_order": 27,
+    "name_en": "Revelation",
+    "name_ar": "سفر رؤيا يوحنا اللاهوتي",
+    "name_cop": "ⲧⲁⲡⲟⲕⲁⲗⲩⲯⲓⲥ ⲛⲓⲱϩⲁⲛⲛⲏⲥ",
+    "chapters": 22,
+    "kjv_idx": 65
+  }
+]

@@ -219,46 +219,57 @@ const registerRoutes = (prefix: string = '') => {
       return c.json({ error: err.message }, 500);
     }
   });
-  // Concordance lookup
+  // Concordance lookup (with Dialect filter)
   app.get(`${prefix}/concordance`, async (c) => {
     c.header('Access-Control-Allow-Origin', '*');
     c.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
     c.header('Cache-Control', 'public, max-age=86400, s-maxage=604800');
 
     const lemma = c.req.query('lemma')?.trim() || '';
+    const dialect = c.req.query('dialect') || 'all';
     if (!lemma) return c.json({ citations: [], count: 0 });
 
     const cleanLemma = lemma
       .normalize('NFD')
-      .replace(/[\u0300-\u036f\ufe20-\ufe2f\u02bc\u02bd`\'\-\=⸗·\*\.\?\[\]\(\)]/g, '')
+      .replace(/[\u0300-\u036f\ufe20-\ufe2f\u02bc\u02bd\u2cfd\u2cfe`\'\-\=⸗·\*\.\?\[\]\(\)]/g, '')
       .normalize('NFC')
       .trim()
       .toLowerCase();
 
     try {
+      let dialectFilter = '';
+      const params: any[] = [cleanLemma, lemma];
+      if (dialect !== 'all') {
+        dialectFilter = 'AND dialect = ?';
+        params.push(dialect);
+      }
+
       // 1. Query exact lemma or clean lemma
       const sql = `
         SELECT id, reference, reference_ar, urn, genre, dialect, source_name, coptic_text, english_translation, arabic_translation
         FROM citations
-        WHERE lemma_clean = ? OR lemma = ?
-        LIMIT 10
+        WHERE (lemma_clean = ? OR lemma = ?) ${dialectFilter}
+        ORDER BY CASE WHEN dialect = 'Sahidic' THEN 1 WHEN dialect = 'Bohairic' THEN 2 ELSE 3 END, id ASC
+        LIMIT 20
       `;
-      const stmt = await c.env.DB.prepare(sql).bind(cleanLemma, lemma).all();
+      const stmt = await c.env.DB.prepare(sql).bind(...params).all();
       let results = stmt.results || [];
 
       // 2. Prefix/Compound fallback if 0 results
       if (results.length === 0) {
-        const compoundPrefixes = ['ⲙⲛⲧ', 'ⲙⲉⲧ', 'ⲣⲉϥ', 'ⲣⲉϥϫⲓ', 'ⲁⲧ', 'ⲥⲁ', 'ϫⲓⲛ', 'ⲙⲁⲛ'];
+        const compoundPrefixes = ['ⲙⲛⲧ', 'ⲙⲉⲧ', 'ⲣⲉϥ', 'ⲣⲉϥϫⲓ', 'ⲁⲧ', 'ⲥⲁ', 'ϫⲓⲛ', 'ⲙⲁⲛ', 'ⲡⲓ', 'ϯ', 'ⲛⲓ'];
         for (const pfx of compoundPrefixes) {
           const cleanPfx = pfx.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
           if (cleanLemma.startsWith(cleanPfx) && cleanLemma.length > cleanPfx.length + 2) {
             const stem = cleanLemma.slice(cleanPfx.length);
+            const fallbackParams: any[] = [stem];
+            if (dialect !== 'all') fallbackParams.push(dialect);
             const stemStmt = await c.env.DB.prepare(`
               SELECT id, reference, reference_ar, urn, genre, dialect, source_name, coptic_text, english_translation, arabic_translation
               FROM citations
-              WHERE lemma_clean = ?
-              LIMIT 6
-            `).bind(stem).all();
+              WHERE lemma_clean = ? ${dialectFilter}
+              LIMIT 10
+            `).bind(...fallbackParams).all();
             if (stemStmt.results && stemStmt.results.length > 0) {
               results = stemStmt.results;
               break;
@@ -268,6 +279,86 @@ const registerRoutes = (prefix: string = '') => {
       }
 
       return c.json({ citations: results, count: results.length });
+    } catch (err: any) {
+      return c.json({ error: err.message }, 500);
+    }
+  });
+
+  // Parallel Bible: Books List
+  app.get(`${prefix}/bible/books`, async (c) => {
+    c.header('Access-Control-Allow-Origin', '*');
+    c.header('Cache-Control', 'public, max-age=86400, s-maxage=604800');
+    try {
+      const rows = await c.env.DB.prepare(`
+        SELECT book as code, MIN(canon_order) as canon_order, book_name_en as name_en, book_name_ar as name_ar, book_name_cop as name_cop, MAX(chapter) as chapters
+        FROM bible_verses
+        GROUP BY book
+        ORDER BY MIN(canon_order) ASC
+      `).all();
+      return c.json({ books: rows.results || [] });
+    } catch (err: any) {
+      return c.json({ error: err.message }, 500);
+    }
+  });
+
+  // Parallel Bible: Chapter Verses
+  app.get(`${prefix}/bible/chapter`, async (c) => {
+    c.header('Access-Control-Allow-Origin', '*');
+    c.header('Cache-Control', 'public, max-age=86400, s-maxage=604800');
+
+    const book = (c.req.query('book') || 'JOH').toUpperCase().trim();
+    const chapter = parseInt(c.req.query('chapter') || '1', 10);
+
+    try {
+      const bookInfo = await c.env.DB.prepare(`
+        SELECT book as code, MIN(canon_order) as canon_order, book_name_en as name_en, book_name_ar as name_ar, book_name_cop as name_cop, MAX(chapter) as chapters
+        FROM bible_verses
+        WHERE book = ?
+        GROUP BY book
+      `).bind(book).first<{ code: string; canon_order: number; name_en: string; name_ar: string; name_cop: string; chapters: number }>();
+
+      const verses = await c.env.DB.prepare(`
+        SELECT verse_id, canon_order, book, book_name_en, book_name_ar, book_name_cop, chapter, verse,
+               coptic_sahidic, coptic_bohairic, coptic_bohairic_plain, arabic_nav, arabic_svd, arabic_wbtc, english_kjv
+        FROM bible_verses
+        WHERE book = ? AND chapter = ?
+        ORDER BY verse ASC
+      `).bind(book, chapter).all();
+
+      return c.json({
+        book: bookInfo || { code: book, name_en: book, name_ar: book, name_cop: book, chapters: 1 },
+        chapter,
+        total_chapters: bookInfo?.chapters || 1,
+        verses: verses.results || []
+      });
+    } catch (err: any) {
+      return c.json({ error: err.message }, 500);
+    }
+  });
+
+  // Parallel Bible: Full-text search
+  app.get(`${prefix}/bible/search`, async (c) => {
+    c.header('Access-Control-Allow-Origin', '*');
+    const q = (c.req.query('q') || '').trim();
+    const limit = Math.min(parseInt(c.req.query('limit') || '30', 10), 100);
+
+    if (!q) return c.json({ results: [], count: 0 });
+
+    try {
+      const cleanQ = q.replace(/[\'\"\*\^]/g, '').trim();
+      const ftsQuery = `"${cleanQ}"*`;
+
+      const rows = await c.env.DB.prepare(`
+        SELECT b.verse_id, b.book, b.book_name_en, b.book_name_ar, b.book_name_cop, b.chapter, b.verse,
+               b.coptic_sahidic, b.coptic_bohairic, b.arabic_nav, b.english_kjv
+        FROM bible_verses_fts f
+        JOIN bible_verses b ON b.verse_id = f.verse_id
+        WHERE bible_verses_fts MATCH ?
+        ORDER BY b.canon_order ASC
+        LIMIT ?
+      `).bind(ftsQuery, limit).all();
+
+      return c.json({ results: rows.results || [], count: (rows.results || []).length });
     } catch (err: any) {
       return c.json({ error: err.message }, 500);
     }

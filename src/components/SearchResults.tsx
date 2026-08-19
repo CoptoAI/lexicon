@@ -3,7 +3,7 @@ import { DictionaryEntry, Sense } from '../types/dictionary';
 import { DIALECT_DESCRIPTIONS, POS_DESCRIPTIONS } from '../utils/coptic';
 import { playSynthesizedCoptic } from '../utils/audio';
 import { isWordSaved, toggleSaveWord, subscribeSavedWords } from '../services/savedWords';
-import { Share2, Sparkles, BookOpen, Volume2, Flame, Bookmark } from 'lucide-react';
+import { Share2, Sparkles, BookOpen, Volume2, Flame, Bookmark, ChevronRight } from 'lucide-react';
 import { UiTranslations } from '../utils/i18n';
 import { stripHtmlAndTags } from '../utils/richText';
 
@@ -99,11 +99,29 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
     toggleSaveWord(entry);
   };
 
+  const handleCardShare = async (e: React.MouseEvent, entry: DictionaryEntry) => {
+    e.stopPropagation();
+    const shareUrl = `https://lexicon.copto.org/?q=${encodeURIComponent(entry.coptic_name)}`;
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
+          title: `CoptoLex: ${entry.coptic_name}`,
+          text: `${entry.coptic_name} (${entry.pos}) — Coptic Lexicon`,
+          url: shareUrl
+        });
+      } catch (err) {
+        navigator.clipboard.writeText(shareUrl);
+      }
+    } else {
+      navigator.clipboard.writeText(shareUrl);
+    }
+  };
+
   if (loading) {
     return (
       <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted)' }}>
-        <div style={{ fontSize: '32px', fontFamily: 'var(--font-coptic)', marginBottom: '12px' }}>ⲁ...</div>
-        <p>Searching Coptic Lexicon &amp; Etymologies...</p>
+        <div style={{ fontSize: '36px', fontFamily: 'var(--font-coptic)', marginBottom: '12px', color: 'var(--accent-gold)' }}>ⲁ...</div>
+        <p style={{ fontSize: '14px' }}>Searching Coptic Lexicon &amp; Etymologies...</p>
       </div>
     );
   }
@@ -128,7 +146,7 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
   }
 
   return (
-    <div>
+    <div className="search-results-wrapper">
       <div className="results-header">
         <span>{t.showingResults(entries.length, totalCount)}</span>
         <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{t.resultsHint}</span>
@@ -148,76 +166,84 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
               className="entry-card"
               onClick={() => onSelectEntry(entry)}
             >
-              <div className="entry-card-top">
-                <div className="entry-word-group">
+              {/* Section 1: Prominent Headword & Action Buttons */}
+              <div className="entry-card-header">
+                <div className="entry-headword-wrap">
                   <span className="entry-coptic-headword">{entry.coptic_name}</span>
-
                   <button
-                    className={`btn-icon ${isPlaying ? 'active' : ''}`}
-                    style={{
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '50%',
-                      background: isPlaying ? 'var(--accent-gold)' : 'var(--bg-surface-elevated)',
-                      color: isPlaying ? '#0c0f17' : 'var(--accent-gold)',
-                      border: '1px solid var(--border-gold)',
-                      transform: isPlaying ? 'scale(1.1)' : 'none',
-                      transition: 'all 0.2s ease'
-                    }}
+                    className={`btn-card-audio ${isPlaying ? 'active' : ''}`}
                     onClick={(e) => handlePlayAudio(e, entry)}
                     title="Play Coptic pronunciation"
+                    aria-label={`Play pronunciation for ${entry.coptic_name}`}
                   >
-                    <Volume2 size={15} />
+                    <Volume2 size={16} />
                   </button>
-
-                  {entry.ipa_sahidic && (
-                    <span style={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--text-muted)' }}>
-                      {entry.ipa_sahidic}
-                    </span>
-                  )}
-
-                  <span className="entry-pos-badge" title={posDesc}>
-                    {entry.pos}
-                  </span>
-
-                  {entry.origin === 'greek' ? (
-                    <span
-                      className="dialect-tag"
-                      style={{ borderColor: 'rgba(99, 102, 241, 0.4)', color: '#818cf8' }}
-                      title="Greek Loanword in Coptic (DDGLC)"
-                    >
-                      🏛️ Greek
-                    </span>
-                  ) : (
-                    <span
-                      className="dialect-tag"
-                      style={{ borderColor: 'rgba(212, 175, 55, 0.4)', color: 'var(--accent-gold)' }}
-                      title="Ancient Egyptian Heritage (BBAW)"
-                    >
-                      🏺 Egyptian
-                    </span>
-                  )}
-
-                  {entry.freq_rank && entry.freq_rank < 1000 && (
-                    <span
-                      className="dialect-tag"
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '3px',
-                        color: 'var(--accent-amber)',
-                        borderColor: 'rgba(251, 191, 36, 0.4)'
-                      }}
-                      title={`Rank #${entry.freq_rank} in Coptic corpus`}
-                    >
-                      <Flame size={10} />
-                      <span>#{entry.freq_rank}</span>
-                    </span>
-                  )}
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div className="entry-dialects-row">
+                <div className="entry-header-actions">
+                  {/* Bookmark Button */}
+                  <button
+                    className={`btn-card-action ${isSaved ? 'bookmarked' : ''}`}
+                    onClick={(e) => handleToggleSave(e, entry)}
+                    title={isSaved ? 'Remove from Saved' : 'Save for offline revision'}
+                    aria-label="Save word offline"
+                  >
+                    <Bookmark size={16} fill={isSaved ? 'currentColor' : 'none'} />
+                  </button>
+
+                  {/* Native Share Button */}
+                  <button
+                    className="btn-card-action"
+                    onClick={(e) => handleCardShare(e, entry)}
+                    title="Share entry link"
+                    aria-label="Share entry"
+                  >
+                    <Share2 size={15} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Section 2: Auto-Wrapping Metadata Chips Row */}
+              <div className="entry-card-meta">
+                {entry.ipa_sahidic && (
+                  <span className="entry-ipa-tag">
+                    {entry.ipa_sahidic}
+                  </span>
+                )}
+
+                <span className="entry-pos-badge" title={posDesc}>
+                  {entry.pos}
+                </span>
+
+                {entry.origin === 'greek' ? (
+                  <span
+                    className="dialect-tag origin-greek-tag"
+                    title="Greek Loanword in Coptic (DDGLC)"
+                  >
+                    🏛️ Greek
+                  </span>
+                ) : (
+                  <span
+                    className="dialect-tag origin-egyptian-tag"
+                    title="Ancient Egyptian Heritage (BBAW)"
+                  >
+                    🏺 Egyptian
+                  </span>
+                )}
+
+                {entry.freq_rank && entry.freq_rank < 1000 && (
+                  <span
+                    className="dialect-tag freq-rank-tag"
+                    title={`Rank #${entry.freq_rank} in Coptic corpus`}
+                  >
+                    <Flame size={10} />
+                    <span>#{entry.freq_rank}</span>
+                  </span>
+                )}
+
+                {/* Dialect Tags */}
+                {dialects.length > 0 && (
+                  <div className="entry-dialects-cluster">
                     {dialects.map((d) => (
                       <span
                         key={d}
@@ -229,69 +255,51 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
                       </span>
                     ))}
                   </div>
-
-                  {/* Bookmark Button */}
-                  <button
-                    className={`btn-icon ${isSaved ? 'bookmarked' : ''}`}
-                    style={{
-                      width: '32px',
-                      height: '32px',
-                      color: isSaved ? 'var(--accent-gold)' : 'var(--text-muted)',
-                      background: isSaved ? 'rgba(212, 175, 55, 0.15)' : undefined,
-                      borderColor: isSaved ? 'var(--accent-gold)' : undefined
-                    }}
-                    onClick={(e) => handleToggleSave(e, entry)}
-                    title={isSaved ? 'Remove from Saved' : 'Save for offline revision'}
-                  >
-                    <Bookmark size={15} fill={isSaved ? 'currentColor' : 'none'} />
-                  </button>
-
-                  <button
-                    className="btn-icon"
-                    style={{ width: '32px', height: '32px' }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onViewNetwork(entry.coptic_name);
-                    }}
-                    title="View Collocation Network Graph"
-                  >
-                    <Share2 size={14} />
-                  </button>
-                </div>
+                )}
               </div>
 
-              {/* Definitions */}
+              {/* Section 3: English / Primary Senses */}
               <div className="entry-senses">
                 {senses.slice(0, 2).map((s, idx) => (
-                  <div key={idx} style={{ marginBottom: '4px' }}>
-                    <span style={{ fontWeight: 500 }}>{idx + 1}. </span>
-                    <span>{s.definition}</span>
+                  <div key={idx} className="sense-line">
+                    <span className="sense-num">{idx + 1}. </span>
+                    <span className="sense-text">{s.definition}</span>
                     {s.citations && s.citations.length > 0 && (
-                      <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginLeft: '8px' }}>
+                      <span className="sense-citations">
                         ({s.citations.join('; ')})
                       </span>
                     )}
                   </div>
                 ))}
-
-                {/* Arabic Gloss */}
-                {getArabicSense(entry) && (
-                  <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span className="arabic-badge">العربية</span>
-                    <span className="arabic-definition" style={{ fontSize: '13px', color: 'var(--text-primary)' }}>
-                      {getArabicSense(entry)}
-                    </span>
-                  </div>
-                )}
               </div>
 
-              {/* Etymology / Cross-reference info */}
-              {entry.etym && (
-                <div className="entry-etym-preview">
-                  <Sparkles size={12} color="var(--accent-gold)" />
-                  <span>{stripHtmlAndTags(entry.etym)}</span>
+              {/* Section 4: Dedicated Arabic RTL Callout Block */}
+              {getArabicSense(entry) && (
+                <div className="entry-arabic-callout">
+                  <div className="entry-arabic-callout-header">
+                    <span className="arabic-badge">العربية</span>
+                  </div>
+                  <div className="entry-arabic-callout-text">
+                    {getArabicSense(entry)}
+                  </div>
                 </div>
               )}
+
+              {/* Section 5: Etymology Footer & Card Tap Affordance */}
+              <div className="entry-card-footer">
+                {entry.etym ? (
+                  <div className="entry-etym-preview">
+                    <Sparkles size={12} color="var(--accent-gold)" />
+                    <span>{stripHtmlAndTags(entry.etym)}</span>
+                  </div>
+                ) : (
+                  <div />
+                )}
+                <div className="entry-card-tap-hint">
+                  <span>Details</span>
+                  <ChevronRight size={13} />
+                </div>
+              </div>
             </div>
           );
         })}

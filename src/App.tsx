@@ -9,6 +9,9 @@ import { MorphologyAnalyzer } from './components/MorphologyAnalyzer';
 import { HowToModal } from './components/HowToModal';
 import { AboutModal } from './components/AboutModal';
 import { WidgetModal } from './components/WidgetModal';
+import { ParallelScriptureModal } from './components/ParallelScriptureModal';
+import { VocabularyQuizModal } from './components/VocabularyQuizModal';
+import { CopticGrammarModal } from './components/CopticGrammarModal';
 import { BottomNavBar, MobileTab } from './components/BottomNavBar';
 import { SavedWordsView } from './components/SavedWordsView';
 import { PwaInstallPrompt } from './components/PwaInstallPrompt';
@@ -17,7 +20,8 @@ import { fetchStats, searchDictionary, exportAnkiDeck } from './services/api';
 import { getSavedWords, subscribeSavedWords } from './services/savedWords';
 import { UI_STRINGS, UiLanguage } from './utils/i18n';
 import { isArabicText } from './utils/arabic';
-import { Sun, Moon, Info, HelpCircle, Code2, Bookmark, Download, ExternalLink, RefreshCw } from 'lucide-react';
+import { useSwipeGesture } from './utils/useSwipeGesture';
+import { Sun, Moon, Info, HelpCircle, Code2, Bookmark, Download, ExternalLink, RefreshCw, BookOpen } from 'lucide-react';
 
 export const App: React.FC = () => {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
@@ -46,24 +50,83 @@ export const App: React.FC = () => {
   const [showHowTo, setShowHowTo] = useState<boolean>(false);
   const [showAbout, setShowAbout] = useState<boolean>(false);
   const [showWidget, setShowWidget] = useState<boolean>(false);
+  const [showBible, setShowBible] = useState<boolean>(false);
+  const [showQuiz, setShowQuiz] = useState<boolean>(false);
+  const [showGrammar, setShowGrammar] = useState<boolean>(false);
+  const [bibleBook, setBibleBook] = useState<string>('JOH');
+  const [bibleChapter, setBibleChapter] = useState<number>(1);
 
   // Compute UI Language (Arabic if lang is set to 'ar' or query is typed in Arabic)
   const isArabicActive = filters.lang === 'ar' || (filters.lang === 'any' && isArabicText(filters.query));
   const uiLang: UiLanguage = isArabicActive ? 'ar' : 'en';
   const t = UI_STRINGS[uiLang];
 
+  // Mobile menu drag-down-to-dismiss gesture
+  const { dragOffset: menuDragOffset, isDragging: isMenuDragging, touchHandlers: menuTouchHandlers } = useSwipeGesture({
+    onSwipeDown: () => setMobileTab('search'),
+    threshold: 80,
+    enableVerticalDrag: true
+  });
+
+  // Sync theme attribute and mobile theme-color meta tag
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
+    const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+    if (themeColorMeta) {
+      themeColorMeta.setAttribute('content', theme === 'dark' ? '#0c0f17' : '#f8f6f0');
+    }
   }, [theme]);
 
+  // Sync text direction
   useEffect(() => {
     document.documentElement.setAttribute('dir', isArabicActive ? 'rtl' : 'ltr');
   }, [isArabicActive]);
+
+  // Prevent background scrolling when modals or sheets are open
+  const isAnyModalOpen =
+    selectedEntry !== null ||
+    networkWord !== null ||
+    showHowTo ||
+    showAbout ||
+    showWidget ||
+    showBible ||
+    mobileTab === 'menu';
+
+  useEffect(() => {
+    if (isAnyModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isAnyModalOpen]);
 
   useEffect(() => {
     fetchStats().then(setStats);
     setSavedCount(getSavedWords().length);
     const unsub = subscribeSavedWords((words) => setSavedCount(words.length));
+
+    // Check URL params for direct Bible link (e.g. ?bible=JHN:1 or ?book=JHN&chapter=1)
+    const urlParams = new URLSearchParams(window.location.search);
+    const bibleParam = urlParams.get('bible');
+    const bookParam = urlParams.get('book');
+    const chParam = urlParams.get('chapter');
+
+    if (bibleParam) {
+      setShowBible(true);
+      if (bibleParam.includes(':')) {
+        const [b, c] = bibleParam.split(':');
+        if (b) setBibleBook(b.toUpperCase());
+        if (c) setBibleChapter(parseInt(c, 10) || 1);
+      }
+    } else if (bookParam) {
+      setShowBible(true);
+      setBibleBook(bookParam.toUpperCase());
+      if (chParam) setBibleChapter(parseInt(chParam, 10) || 1);
+    }
+
     return unsub;
   }, []);
 
@@ -138,6 +201,9 @@ export const App: React.FC = () => {
         theme={theme}
         onToggleTheme={handleToggleTheme}
         stats={stats}
+        onOpenBible={() => setShowBible(true)}
+        onOpenQuiz={() => setShowQuiz(true)}
+        onOpenGrammar={() => setShowGrammar(true)}
         onOpenHowTo={() => setShowHowTo(true)}
         onOpenAbout={() => setShowAbout(true)}
         onOpenWidget={() => setShowWidget(true)}
@@ -178,7 +244,7 @@ export const App: React.FC = () => {
               )}
 
               {showKeyboard && (
-                <div className="keyboard-container-wrap">
+                <div className="keyboard-container-wrap" style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
                   <CopticKeyboard
                     onInsertChar={handleInsertChar}
                     onBackspace={handleBackspace}
@@ -245,21 +311,79 @@ export const App: React.FC = () => {
         <WidgetModal onClose={() => setShowWidget(false)} />
       )}
 
+      {/* Parallel Scripture Reader Modal */}
+      {showBible && (
+        <ParallelScriptureModal
+          isOpen={showBible}
+          onClose={() => setShowBible(false)}
+          onSelectWord={(word) => {
+            setShowBible(false);
+            handleSearchWordFromOther(word);
+          }}
+          initialBook={bibleBook}
+          initialChapter={bibleChapter}
+          isArabicUi={isArabicActive}
+        />
+      )}
+
+      {/* Vocabulary Quiz & Flashcards Trainer Modal */}
+      {showQuiz && (
+        <VocabularyQuizModal
+          isOpen={showQuiz}
+          onClose={() => setShowQuiz(false)}
+          isArabicUi={isArabicActive}
+        />
+      )}
+
+      {/* Coptic Verb Conjugation Engine Modal */}
+      {showGrammar && (
+        <CopticGrammarModal
+          onClose={() => setShowGrammar(false)}
+          isArabicUi={isArabicActive}
+        />
+      )}
+
       {/* Mobile Menu Bottom Sheet Drawer */}
       {mobileTab === 'menu' && (
         <div className="modal-backdrop modal-backdrop-sheet" onClick={() => setMobileTab('search')}>
-          <div className="modal-content modal-content-sheet" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
-            <div className="sheet-drag-handle" />
+          <div
+            className="modal-content modal-content-sheet"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: '500px',
+              transform: isMenuDragging && menuDragOffset > 0 ? `translateY(${menuDragOffset}px)` : undefined,
+              transition: isMenuDragging ? 'none' : 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+              opacity: isMenuDragging && menuDragOffset > 40 ? Math.max(0.6, 1 - menuDragOffset / 400) : 1
+            }}
+          >
+            {/* Mobile Drag Handle */}
+            <div className="sheet-drag-handle-touch-zone" {...menuTouchHandlers}>
+              <div className="sheet-drag-handle" />
+            </div>
             
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div className="logo-icon" style={{ width: '36px', height: '36px', fontSize: '20px' }}>ⲁ</div>
                 <h3 style={{ margin: 0, fontSize: '18px' }}>CoptoLex Menu</h3>
               </div>
-              <button className="btn-clear" onClick={() => setMobileTab('search')}>✕</button>
+              <button className="btn-clear" onClick={() => setMobileTab('search')} aria-label="Close menu">✕</button>
             </div>
 
             <div className="mobile-menu-grid">
+              <button
+                className="mobile-menu-item"
+                onClick={() => {
+                  setShowBible(true);
+                  setMobileTab('search');
+                }}
+              >
+                <BookOpen size={20} color="var(--accent-gold)" />
+                <div className="mobile-menu-item-text">
+                  <strong>{t.parallelBible}</strong>
+                  <span>{isArabicActive ? 'قراءة ومقارنة نصوص العهد الجديد' : 'Read & compare Sahidic & Bohairic NT'}</span>
+                </div>
+              </button>
+
               <button
                 className="mobile-menu-item"
                 onClick={() => {
@@ -268,7 +392,7 @@ export const App: React.FC = () => {
               >
                 <Bookmark size={20} color="var(--accent-gold)" />
                 <div className="mobile-menu-item-text">
-                  <strong>Saved Vocabulary</strong>
+                  <strong>Saved Vocabulary &amp; Flashcards</strong>
                   <span>{savedCount} words bookmarked offline</span>
                 </div>
               </button>

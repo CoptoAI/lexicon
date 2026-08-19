@@ -4,6 +4,7 @@ export interface UiTranslations {
   siteTitle: string;
   siteSubtitle: string;
   headerEntries: string;
+  parallelBible: string;
   embedWidget: string;
   howToSearch: string;
   aboutCoptoLex: string;
@@ -46,6 +47,7 @@ export const UI_STRINGS: Record<UiLanguage, UiTranslations> = {
     siteTitle: 'COPTOLEX',
     siteSubtitle: 'ⲡⲗⲉⲝⲓⲕⲟⲛ ⲛ̀ϯⲁⲥⲡⲓ ⲛ̀ⲣⲉⲙⲛ̀ⲭⲏⲙⲓ • Comprehensive Coptic Lexicon',
     headerEntries: '11,272 Entries',
+    parallelBible: 'Parallel Bible',
     embedWidget: 'Embed Widget',
     howToSearch: 'How to Search',
     aboutCoptoLex: 'About CoptoLex',
@@ -86,6 +88,7 @@ export const UI_STRINGS: Record<UiLanguage, UiTranslations> = {
     siteTitle: 'كوبتوليكس',
     siteSubtitle: 'ⲡⲗⲉⲝⲓⲕⲟⲛ ⲛ̀ϯⲁⲥⲡⲓ ⲛ̀ⲣⲉⲙⲛ̀ⲭⲏⲙⲓ • المعجم القبطي الشامل',
     headerEntries: '١١,٢٧٢ كلمة',
+    parallelBible: 'العهد الجديد المقارن',
     embedWidget: 'تضمين الأداة',
     howToSearch: 'دليل البحث',
     aboutCoptoLex: 'حول القاموس',

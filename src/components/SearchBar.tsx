@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Keyboard, X, Download, Flame, ArrowDownAZ } from 'lucide-react';
+import { Search, Keyboard, X, Download, Flame, ArrowDownAZ, Filter, RotateCcw } from 'lucide-react';
 import { SearchFilters } from '../types/dictionary';
 import { POS_DESCRIPTIONS, convertLatinToCoptic } from '../utils/coptic';
 import { UiTranslations } from '../utils/i18n';
@@ -44,6 +44,26 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     onChangeFilters({ query: val });
   };
 
+  const isFilterActive =
+    filters.dialect !== 'any' ||
+    filters.origin !== 'all' ||
+    filters.pos !== 'any' ||
+    filters.lang !== 'any' ||
+    filters.sortBy !== 'alpha';
+
+  const resetAllFilters = () => {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try { navigator.vibrate(10); } catch (e) {}
+    }
+    onChangeFilters({
+      dialect: 'any',
+      origin: 'all',
+      pos: 'any',
+      lang: 'any',
+      sortBy: 'alpha'
+    });
+  };
+
   return (
     <div className="search-card">
       <div className="search-input-wrapper">
@@ -55,11 +75,17 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           value={filters.query}
           onChange={handleInputChange}
           autoFocus
+          aria-label="Search lexicon"
         />
 
         <div className="search-input-actions">
           {filters.query && (
-            <button className="btn-clear" onClick={() => onChangeFilters({ query: '' })} title={t.clearSearch}>
+            <button
+              className="btn-clear"
+              onClick={() => onChangeFilters({ query: '' })}
+              title={t.clearSearch}
+              aria-label={t.clearSearch}
+            >
               <X size={18} />
             </button>
           )}
@@ -68,6 +94,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
             className={`btn-keyboard-toggle ${showKeyboard ? 'active' : ''}`}
             onClick={onToggleKeyboard}
             title={t.keyboard}
+            aria-label={t.keyboard}
           >
             <Keyboard size={16} />
             <span>{t.keyboard}</span>
@@ -142,7 +169,19 @@ export const SearchBar: React.FC<SearchBarProps> = ({
       {/* Dialect Filter Row */}
       <div className="filter-row filter-row-dialects">
         <div className="filter-group" style={{ width: '100%' }}>
-          <span className="filter-label">{t.dialectLabel}</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: '2px' }}>
+            <span className="filter-label">{t.dialectLabel}</span>
+            {isFilterActive && (
+              <button
+                className="btn-reset-filters-chip"
+                onClick={resetAllFilters}
+                title="Reset all filters to default"
+              >
+                <RotateCcw size={11} />
+                <span>Reset Filters</span>
+              </button>
+            )}
+          </div>
           <div className="dialect-pills scrollable-pills">
             {DIALECT_OPTIONS.map((d) => (
               <button
@@ -158,13 +197,14 @@ export const SearchBar: React.FC<SearchBarProps> = ({
       </div>
 
       {/* POS and Language Selectors */}
-      <div className="filter-row" style={{ justifyContent: 'space-between' }}>
+      <div className="filter-row filter-row-selectors" style={{ justifyContent: 'space-between' }}>
         <div className="filter-group">
           <span className="filter-label">{t.posLabel}</span>
           <select
             className="filter-select"
             value={filters.pos}
             onChange={(e) => onChangeFilters({ pos: e.target.value })}
+            aria-label="Part of speech filter"
           >
             <option value="any">{t.anyPos}</option>
             {Object.entries(POS_DESCRIPTIONS).map(([tag, desc]) => (
@@ -181,6 +221,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
             className="filter-select"
             value={filters.lang}
             onChange={(e) => onChangeFilters({ lang: e.target.value as any })}
+            aria-label="Definition language filter"
           >
             <option value="any">{t.langAny}</option>
             <option value="ar">{t.langAr}</option>

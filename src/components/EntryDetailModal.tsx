@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { DictionaryEntry, Sense, FormItem, EgyptianEtymology, InflectionParadigm, ManuscriptCitation } from '../types/dictionary';
 import { DIALECT_DESCRIPTIONS, POS_DESCRIPTIONS } from '../utils/coptic';
 import { playSynthesizedCoptic } from '../utils/audio';
@@ -7,7 +7,8 @@ import { isWordSaved, toggleSaveWord, subscribeSavedWords } from '../services/sa
 import { RichEtymology } from '../utils/richText';
 import { ConcordanceViewer } from './ConcordanceViewer';
 import { fetchConcordanceExamples, ManuscriptExample } from '../services/concordance';
-import { X, Copy, Check, ExternalLink, Share2, Sparkles, BookOpen, Volume2, Download, Quote, ScrollText, Grid, Bookmark } from 'lucide-react';
+import { useSwipeGesture } from '../utils/useSwipeGesture';
+import { X, Copy, Check, ExternalLink, Share2, Sparkles, BookOpen, Volume2, Download, Quote, ScrollText, Grid, Bookmark, ArrowUp } from 'lucide-react';
 
 interface EntryDetailModalProps {
   entry: DictionaryEntry | null;
@@ -30,6 +31,16 @@ export const EntryDetailModal: React.FC<EntryDetailModalProps> = ({
   const [activeTab, setActiveTab] = useState<'details' | 'dialects' | 'concordance'>('details');
   const [concordanceExamples, setConcordanceExamples] = useState<ManuscriptExample[]>([]);
   const [isSaved, setIsSaved] = useState(entry ? isWordSaved(entry.id) : false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+
+  // Mobile Touch Swipe-Down-To-Dismiss
+  const { dragOffset, isDragging, touchHandlers } = useSwipeGesture({
+    onSwipeDown: onClose,
+    threshold: 90,
+    enableVerticalDrag: true
+  });
 
   useEffect(() => {
     if (!entry) return;
@@ -40,9 +51,8 @@ export const EntryDetailModal: React.FC<EntryDetailModalProps> = ({
     return unsub;
   }, [entry?.id]);
 
-  if (!entry) return null;
-
   useEffect(() => {
+    if (!entry) return;
     let isMounted = true;
     fetchConcordanceExamples(entry.coptic_name).then((res) => {
       if (isMounted) setConcordanceExamples(res);
@@ -50,7 +60,9 @@ export const EntryDetailModal: React.FC<EntryDetailModalProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [entry.coptic_name]);
+  }, [entry?.coptic_name]);
+
+  if (!entry) return null;
 
   const parseJsonSafe = <T,>(jsonStr?: string, fallback: T | null = null): T | null => {
     if (!jsonStr) return fallback;
@@ -92,6 +104,24 @@ export const EntryDetailModal: React.FC<EntryDetailModalProps> = ({
     toggleSaveWord(entry);
   };
 
+  const handleNativeShare = async () => {
+    const shareUrl = `https://lexicon.copto.org/?q=${encodeURIComponent(entry.coptic_name)}`;
+    const shareText = `${entry.coptic_name} (${entry.pos}) — Comprehensive Coptic Lexicon`;
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
+          title: `CoptoLex: ${entry.coptic_name}`,
+          text: shareText,
+          url: shareUrl
+        });
+      } catch (err) {
+        handleCopy(shareUrl, 'share');
+      }
+    } else {
+      handleCopy(shareUrl, 'share');
+    }
+  };
+
   const handleCopyBibtex = () => {
     const bibtex = `@misc{coptolex_${entry.xml_id},
   title = {${entry.coptic_name} - Comprehensive Coptic Lexicon Entry ${entry.xml_id}},
@@ -101,6 +131,17 @@ export const EntryDetailModal: React.FC<EntryDetailModalProps> = ({
   year = {2026}
 }`;
     handleCopy(bibtex, 'bibtex');
+  };
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget;
+    setShowScrollTop(target.scrollTop > 240);
+  };
+
+  const scrollToTop = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   const posDesc = POS_DESCRIPTIONS[entry.pos] || entry.pos;
@@ -125,59 +166,71 @@ export const EntryDetailModal: React.FC<EntryDetailModalProps> = ({
 
   return (
     <div className="modal-backdrop modal-backdrop-sheet" onClick={onClose}>
-      <div className="modal-content modal-content-sheet" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="modal-content modal-content-sheet detail-modal-wrapper"
+        ref={scrollContainerRef}
+        onScroll={handleScroll}
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          transform: isDragging && dragOffset > 0 ? `translateY(${dragOffset}px)` : undefined,
+          transition: isDragging ? 'none' : 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+          opacity: isDragging && dragOffset > 40 ? Math.max(0.6, 1 - dragOffset / 400) : 1
+        }}
+      >
         {/* Mobile Swipe / Drag Handle */}
-        <div className="sheet-drag-handle" />
+        <div
+          className="sheet-drag-handle-touch-zone"
+          {...touchHandlers}
+        >
+          <div className="sheet-drag-handle" />
+        </div>
 
-        <button className="modal-close-btn" onClick={onClose}>
+        <button className="modal-close-btn" onClick={onClose} aria-label="Close details">
           <X size={20} />
         </button>
 
-        {/* Headword Section */}
-        <div className="detail-headword-section">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div className="detail-coptic-title">{entry.coptic_name}</div>
-            <button
-              className={`btn-icon ${isPlayingAudio ? 'active' : ''}`}
-              style={{
-                borderRadius: '50%',
-                background: isPlayingAudio ? 'var(--accent-gold)' : 'var(--bg-surface-elevated)',
-                color: isPlayingAudio ? '#0c0f17' : 'var(--accent-gold)',
-                transform: isPlayingAudio ? 'scale(1.15)' : 'none',
-                transition: 'all 0.2s ease'
-              }}
-              onClick={() => handlePlayAudio(activeDialectIpa)}
-              title="Play Pronunciation"
-            >
-              <Volume2 size={18} />
-            </button>
+        {/* Section 1: Hero Header (Headword + Metadata + Action Toolbar) */}
+        <div className="detail-hero-card">
+          <div className="detail-hero-top">
+            <div className="detail-coptic-title-wrap">
+              <span className="detail-coptic-title">{entry.coptic_name}</span>
+              <button
+                className={`btn-hero-audio ${isPlayingAudio ? 'active' : ''}`}
+                onClick={() => handlePlayAudio(activeDialectIpa)}
+                title="Play Coptic pronunciation"
+                aria-label="Play Coptic pronunciation"
+              >
+                <Volume2 size={18} />
+              </button>
+            </div>
+
+            {/* Metadata Chips */}
+            <div className="detail-hero-meta">
+              <span className="entry-pos-badge" title={posDesc}>
+                {entry.pos} – {posDesc}
+              </span>
+
+              {entry.origin === 'greek' ? (
+                <span className="dialect-tag origin-greek-tag">
+                  🏛️ Greek Loanword (DDGLC)
+                </span>
+              ) : (
+                <span className="dialect-tag origin-egyptian-tag">
+                  🏺 Egyptian Heritage (BBAW)
+                </span>
+              )}
+
+              <span className="detail-tla-id-badge">
+                TLA ID: {entry.xml_id}
+              </span>
+            </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <span className="entry-pos-badge" title={posDesc}>
-              {entry.pos} – {posDesc}
-            </span>
-
-            {entry.origin === 'greek' ? (
-              <span className="dialect-tag" style={{ borderColor: 'rgba(99, 102, 241, 0.4)', color: '#818cf8' }}>
-                🏛️ Greek Loanword (DDGLC)
-              </span>
-            ) : (
-              <span className="dialect-tag" style={{ borderColor: 'rgba(212, 175, 55, 0.4)', color: 'var(--accent-gold)' }}>
-                🏺 Egyptian Heritage (BBAW)
-              </span>
-            )}
-
-            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-              TLA ID: {entry.xml_id}
-            </span>
-          </div>
-
-          <div style={{ marginLeft: 'auto', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+          {/* Action Toolbar */}
+          <div className="detail-action-toolbar">
             <button
-              className={`btn-nav ${isSaved ? 'active' : ''}`}
+              className={`btn-detail-action ${isSaved ? 'active' : ''}`}
               onClick={handleToggleSave}
-              style={{ borderColor: isSaved ? 'var(--accent-gold)' : undefined, color: isSaved ? 'var(--accent-gold)' : undefined }}
               title={isSaved ? 'Remove from Saved' : 'Save for offline revision'}
             >
               <Bookmark size={14} fill={isSaved ? 'currentColor' : 'none'} />
@@ -185,443 +238,363 @@ export const EntryDetailModal: React.FC<EntryDetailModalProps> = ({
             </button>
 
             <button
-              className="btn-nav"
+              className="btn-detail-action"
+              onClick={handleNativeShare}
+              title="Share entry link"
+            >
+              {copied === 'share' ? <Check size={14} color="var(--accent-emerald)" /> : <Share2 size={14} />}
+              <span>{copied === 'share' ? 'Copied' : 'Share'}</span>
+            </button>
+
+            <button
+              className="btn-detail-action"
               onClick={() => handleCopy(entry.coptic_name, 'word')}
-              title="Copy Coptic Word"
+              title="Copy Coptic word"
             >
               {copied === 'word' ? <Check size={14} color="var(--accent-emerald)" /> : <Copy size={14} />}
               <span>{copied === 'word' ? 'Copied' : 'Copy'}</span>
             </button>
 
             <button
-              className="btn-nav"
+              className="btn-detail-action"
               onClick={handleCopyBibtex}
-              title="Copy BibTeX Academic Citation"
+              title="Copy BibTeX academic citation"
             >
               {copied === 'bibtex' ? <Check size={14} color="var(--accent-emerald)" /> : <Quote size={14} />}
-              <span>{copied === 'bibtex' ? 'BibTeX Copied' : 'Cite'}</span>
+              <span>{copied === 'bibtex' ? 'BibTeX' : 'Cite'}</span>
             </button>
 
             <button
-              className="btn-nav"
+              className="btn-detail-action"
               onClick={() => exportAnkiDeck([entry], `coptic_${entry.coptic_name}.csv`)}
               title="Export entry to Anki Flashcard CSV"
             >
-              <Download size={14} color="var(--accent-gold)" />
+              <Download size={14} />
               <span>Anki</span>
             </button>
 
             <button
-              className="btn-nav"
+              className="btn-detail-action"
               onClick={() => {
                 onClose();
                 onViewNetwork(entry.coptic_name);
               }}
               title="View Word Collocation Network Graph"
             >
-              <Share2 size={14} />
+              <Grid size={14} />
               <span>Network</span>
             </button>
           </div>
         </div>
 
-        {/* View Toggle Tabs */}
-        <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '8px', flexWrap: 'wrap' }}>
-          <button
-            className={`btn-nav ${activeTab === 'details' ? 'active' : ''}`}
-            onClick={() => setActiveTab('details')}
-          >
-            <BookOpen size={14} />
-            <span>{isArabicUi ? 'المعجم وقواعد اللغة' : 'Lexicon & Grammar'}</span>
-          </button>
-          <button
-            className={`btn-nav ${activeTab === 'dialects' ? 'active' : ''}`}
-            onClick={() => setActiveTab('dialects')}
-          >
-            <Grid size={14} />
-            <span>{isArabicUi ? 'مصفوفة اللهجات' : 'Dialect Matrix'}</span>
-          </button>
-          <button
-            className={`btn-nav ${activeTab === 'concordance' ? 'active' : ''}`}
-            onClick={() => setActiveTab('concordance')}
-          >
-            <ScrollText size={14} />
-            <span>{isArabicUi ? 'شواهد المخطوطات' : 'Manuscript Concordance'}</span>
-            {concordanceExamples.length > 0 && (
-              <span className="concordance-badge-count" style={{ marginLeft: '4px' }}>
-                {concordanceExamples.length}
-              </span>
-            )}
-          </button>
+        {/* Section 2: Zero-Clipping Sticky Segmented Tabs */}
+        <div className="detail-tabs-sticky-bar">
+          <div className="detail-segmented-tabs">
+            <button
+              className={`detail-tab-btn ${activeTab === 'details' ? 'active' : ''}`}
+              onClick={() => setActiveTab('details')}
+            >
+              <BookOpen size={14} />
+              <span>{isArabicUi ? 'المعجم وقواعد اللغة' : 'Lexicon & Grammar'}</span>
+            </button>
+            <button
+              className={`detail-tab-btn ${activeTab === 'dialects' ? 'active' : ''}`}
+              onClick={() => setActiveTab('dialects')}
+            >
+              <Grid size={14} />
+              <span>{isArabicUi ? 'مصفوفة اللهجات' : 'Dialect Matrix'}</span>
+            </button>
+            <button
+              className={`detail-tab-btn ${activeTab === 'concordance' ? 'active' : ''}`}
+              onClick={() => setActiveTab('concordance')}
+            >
+              <ScrollText size={14} />
+              <span>{isArabicUi ? 'شواهد المخطوطات' : 'Manuscripts'}</span>
+              {concordanceExamples.length > 0 && (
+                <span className="concordance-mini-badge">{concordanceExamples.length}</span>
+              )}
+            </button>
+          </div>
         </div>
 
-        {activeTab === 'concordance' ? (
-          <ConcordanceViewer coptic_name={entry.coptic_name} xml_id={entry.xml_id} isArabicUi={isArabicUi} />
-        ) : activeTab === 'dialects' ? (
-          /* Multi-Dialect Comparison Matrix View */
-          <div style={{ background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '18px 20px' }}>
-            <h3 style={{ fontSize: '15px', color: 'var(--accent-gold)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Grid size={16} />
-              <span>Comparative Dialectal Distribution</span>
-            </h3>
-            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
-              Orthographic variations attested across major Coptic literary and regional traditions:
-            </p>
+        {/* Tab 1: Full Concordance Citations */}
+        {activeTab === 'concordance' && (
+          <div className="detail-tab-pane">
+            <ConcordanceViewer
+              coptic_name={entry.coptic_name}
+              xml_id={entry.xml_id}
+              isArabicUi={isArabicUi}
+            />
+          </div>
+        )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px' }}>
-              {Object.entries(dialectMatrix).map(([code, attestedForms]) => {
-                const dial = DIALECT_DESCRIPTIONS[code];
-                return (
-                  <div
-                    key={code}
-                    style={{
-                      background: 'var(--bg-surface)',
-                      border: `1px solid ${dial?.color ? dial.color + '44' : 'var(--border-subtle)'}`,
-                      borderRadius: 'var(--radius-sm)',
-                      padding: '12px 14px'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span style={{ fontWeight: 'bold', color: dial?.color || 'var(--text-primary)', fontSize: '13px' }}>
-                        {code} – {dial?.name || code}
-                      </span>
-                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                        {attestedForms.length} forms
-                      </span>
-                    </div>
-                    {attestedForms.length > 0 ? (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
-                        {attestedForms.map((form, i) => (
-                          <span
-                            key={i}
-                            style={{
-                              fontFamily: 'var(--font-coptic)',
-                              fontSize: '16px',
-                              background: 'var(--bg-surface-elevated)',
-                              padding: '2px 8px',
-                              borderRadius: 'var(--radius-sm)',
-                              border: '1px solid var(--border-subtle)'
-                            }}
-                          >
-                            {form}
-                          </span>
-                        ))}
+        {/* Tab 2: Dialect Matrix Grid */}
+        {activeTab === 'dialects' && (
+          <div className="detail-tab-pane">
+            <div className="detail-section-card">
+              <h3 className="detail-pane-heading">
+                Coptic Dialect Attestation &amp; Orthographic Matrix
+              </h3>
+              <p className="detail-pane-subheading">
+                Phonological variations attested across early Sahidic, Bohairic, Akhmimic, Fayyumic, Lycopolitan, and Mesokemic manuscripts:
+              </p>
+
+              <div className="dialect-matrix-grid">
+                {Object.entries(DIALECT_DESCRIPTIONS).map(([siglum, desc]) => {
+                  const attestedForms = dialectMatrix[siglum] || [];
+                  const isAttested = attestedForms.length > 0 || (entry.dialects && entry.dialects.includes(siglum));
+
+                  return (
+                    <div
+                      key={siglum}
+                      className={`dialect-card ${isAttested ? 'attested' : 'unattested'}`}
+                      style={{ borderLeftColor: desc.color }}
+                    >
+                      <div className="dialect-card-header">
+                        <div>
+                          <strong style={{ color: desc.color, fontSize: '15px' }}>{siglum}</strong>
+                          <span style={{ fontSize: '13px', marginLeft: '6px', fontWeight: 600 }}>{desc.name}</span>
+                        </div>
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{desc.region}</span>
                       </div>
-                    ) : (
-                      <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                        No direct dialect forms attested in lexicon
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
+
+                      <div className="dialect-card-body">
+                        {attestedForms.length > 0 ? (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
+                            {attestedForms.map((orth, i) => (
+                              <span key={i} className="coptic-tag-pill">
+                                {orth}
+                              </span>
+                            ))}
+                          </div>
+                        ) : isAttested ? (
+                          <span style={{ fontSize: '12px', color: 'var(--accent-gold)' }}>Attested in corpus</span>
+                        ) : (
+                          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>No direct attestation</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
-        ) : (
-          /* Standard Details View */
-          <>
-            {/* IPA Pronunciation bar */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', background: 'var(--bg-surface-elevated)', padding: '10px 16px', borderRadius: 'var(--radius-sm)', fontSize: '13px', flexWrap: 'wrap' }}>
-              <strong style={{ color: 'var(--accent-gold)' }}>IPA Phonetics &amp; Audio:</strong>
-              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                <button
-                  className={`btn-nav ${activeDialectIpa === 'S' ? 'active' : ''}`}
-                  style={{ padding: '3px 10px', fontSize: '12px' }}
-                  onClick={() => {
-                    setActiveDialectIpa('S');
-                    handlePlayAudio('S');
-                  }}
-                >
-                  <Volume2 size={13} />
-                  <span>Sahidic: <code style={{ fontFamily: 'monospace' }}>{entry.ipa_sahidic || '/--/'}</code></span>
-                </button>
-                <button
-                  className={`btn-nav ${activeDialectIpa === 'B' ? 'active' : ''}`}
-                  style={{ padding: '3px 10px', fontSize: '12px' }}
-                  onClick={() => {
-                    setActiveDialectIpa('B');
-                    handlePlayAudio('B');
-                  }}
-                >
-                  <Volume2 size={13} />
-                  <span>Bohairic: <code style={{ fontFamily: 'monospace' }}>{entry.ipa_bohairic || '/--/'}</code></span>
-                </button>
-              </div>
-            </div>
+        )}
 
-            {/* Ancient Egyptian & Demotic Origin Card (if attested) */}
-            {egyptianRoot && (
-              <div style={{ background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(21, 26, 36, 0.95))', border: '1px solid var(--border-gold)', borderRadius: 'var(--radius-md)', padding: '16px 20px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Sparkles size={18} color="var(--accent-gold)" />
-                    <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '16px', color: 'var(--accent-gold)', margin: 0 }}>
-                      Ancient Egyptian &amp; Demotic Root
-                    </h3>
-                  </div>
-                  {egyptianRoot.tla_link && (
-                    <a
-                      href={egyptianRoot.tla_link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn-nav"
-                      style={{ padding: '3px 8px', fontSize: '11px', display: 'inline-flex' }}
-                    >
-                      <span>TLA Egyptian Lexicon</span>
-                      <ExternalLink size={11} />
-                    </a>
-                  )}
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', fontSize: '13px' }}>
-                  {egyptianRoot.egy_lemma && (
-                    <div>
-                      <div style={{ color: 'var(--text-secondary)', fontSize: '11px', textTransform: 'uppercase' }}>Hieroglyphic / Hieratic Transliteration:</div>
-                      <div style={{ fontFamily: 'serif', fontSize: '17px', fontWeight: 'bold', color: 'var(--text-primary)', marginTop: '2px' }}>
-                        {egyptianRoot.egy_lemma}
-                      </div>
-                      {egyptianRoot.egy_num && (
-                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>TLA Lemma No: {egyptianRoot.egy_num}</div>
-                      )}
-                    </div>
-                  )}
-
-                  {egyptianRoot.demo_lemma && (
-                    <div>
-                      <div style={{ color: 'var(--text-secondary)', fontSize: '11px', textTransform: 'uppercase' }}>Demotic Root &amp; Transliteration:</div>
-                      <div style={{ fontFamily: 'serif', fontSize: '17px', fontWeight: 'bold', color: 'var(--text-primary)', marginTop: '2px' }}>
-                        {egyptianRoot.demo_lemma}
-                      </div>
-                      {egyptianRoot.demo_num && (
-                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Demotic ID: {egyptianRoot.demo_num}</div>
-                      )}
-                    </div>
-                  )}
-
-                  <div>
-                    <div style={{ color: 'var(--text-secondary)', fontSize: '11px', textTransform: 'uppercase' }}>Ancient Meaning:</div>
-                    <div style={{ color: 'var(--text-primary)', marginTop: '2px' }}>
-                      {egyptianRoot.english || egyptianRoot.german || '&ndash;'}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Morphological Conjugation / Inflection Paradigm Table (if available) */}
-            {inflectionParadigm && (
-              <div style={{ background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '16px 20px' }}>
-                <div className="detail-section-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <BookOpen size={16} />
-                  <span>Morphological Conjugation &amp; Inflection Paradigm</span>
-                </div>
-                <table className="forms-table" style={{ marginTop: '8px' }}>
-                  <thead>
-                    <tr>
-                      <th>Infinitive</th>
-                      <th>Nominal State (Prenominal <code>-</code>)</th>
-                      <th>Pronominal State (Prepronominal <code>⸗</code>)</th>
-                      <th>Qualitative / Stative (<code>+</code>)</th>
-                      <th>Imperative</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td className="form-coptic">{inflectionParadigm.lemma}</td>
-                      <td className="form-coptic">{inflectionParadigm.prenominal || '&ndash;'}</td>
-                      <td className="form-coptic">{inflectionParadigm.prepronominal || '&ndash;'}</td>
-                      <td className="form-coptic">{inflectionParadigm.stative || '&ndash;'}</td>
-                      <td className="form-coptic">{inflectionParadigm.imperative || '&ndash;'}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {/* Definitions Section */}
-            <div>
-              <div className="detail-section-title">Definitions &amp; Lexicon Senses</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {/* Arabic Definitions (العربية) */}
-                {arSenses.length > 0 && (
-                  <div style={{ background: 'var(--bg-surface-elevated)', padding: '14px 18px', borderRadius: 'var(--radius-sm)', borderRight: '4px solid var(--accent-teal)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                      <strong style={{ color: 'var(--accent-teal)', fontSize: '13px', fontFamily: 'var(--font-arabic)', direction: 'rtl' }}>
-                        العربية (Arabic):
-                      </strong>
-                      <span className="arabic-badge">القاموس القبطي</span>
-                    </div>
-                    <ol className="text-rtl" style={{ paddingRight: '22px', marginTop: '6px', fontSize: '15px', lineHeight: '1.75' }}>
-                      {arSenses.map((s, i) => (
-                        <li key={i} style={{ marginBottom: '6px' }}>
-                          <span>{s.definition}</span>
-                          {s.citations?.length > 0 && (
-                            <span style={{ color: 'var(--text-muted)', fontSize: '12px', marginRight: '8px', direction: 'ltr', display: 'inline-block' }}>
-                              [{s.citations.join('; ')}]
-                            </span>
-                          )}
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
-                )}
-
-                {enSenses.length > 0 && (
-                  <div style={{ background: 'var(--bg-surface-elevated)', padding: '12px 16px', borderRadius: 'var(--radius-sm)' }}>
-                    <strong style={{ color: 'var(--accent-blue)', fontSize: '12px', textTransform: 'uppercase' }}>English:</strong>
-                    <ol style={{ paddingLeft: '20px', marginTop: '6px', fontSize: '14px' }}>
-                      {enSenses.map((s, i) => (
-                        <li key={i} style={{ marginBottom: '4px' }}>
-                          <span>{s.definition}</span>
-                          {s.citations?.length > 0 && (
-                            <span style={{ color: 'var(--text-muted)', fontSize: '12px', marginLeft: '6px' }}>
-                              [{s.citations.join('; ')}]
-                            </span>
-                          )}
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
-                )}
-
-                {deSenses.length > 0 && (
-                  <div style={{ background: 'var(--bg-surface-elevated)', padding: '12px 16px', borderRadius: 'var(--radius-sm)' }}>
-                    <strong style={{ color: 'var(--accent-amber)', fontSize: '12px', textTransform: 'uppercase' }}>Deutsch (German):</strong>
-                    <ol style={{ paddingLeft: '20px', marginTop: '6px', fontSize: '14px' }}>
-                      {deSenses.map((s, i) => (
-                        <li key={i} style={{ marginBottom: '4px' }}>
-                          <span>{s.definition}</span>
-                          {s.citations?.length > 0 && (
-                            <span style={{ color: 'var(--text-muted)', fontSize: '12px', marginLeft: '6px' }}>
-                              [{s.citations.join('; ')}]
-                            </span>
-                          )}
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
-                )}
-
-                {frSenses.length > 0 && (
-                  <div style={{ background: 'var(--bg-surface-elevated)', padding: '12px 16px', borderRadius: 'var(--radius-sm)' }}>
-                    <strong style={{ color: 'var(--accent-emerald)', fontSize: '12px', textTransform: 'uppercase' }}>Français (French):</strong>
-                    <ol style={{ paddingLeft: '20px', marginTop: '6px', fontSize: '14px' }}>
-                      {frSenses.map((s, i) => (
-                        <li key={i} style={{ marginBottom: '4px' }}>
-                          <span>{s.definition}</span>
-                          {s.citations?.length > 0 && (
-                            <span style={{ color: 'var(--text-muted)', fontSize: '12px', marginLeft: '6px' }}>
-                              [{s.citations.join('; ')}]
-                            </span>
-                          )}
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Inline Manuscript Concordance Preview */}
-            {concordanceExamples.length > 0 && (
-              <div className="concordance-inline-preview">
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <ScrollText size={16} color="var(--accent-gold)" />
-                    <span style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text-primary)' }}>
-                      Attested in {concordanceExamples.length} Biblical &amp; Patristic Manuscript Passages
-                    </span>
-                  </div>
+        {/* Tab 3: Core Lexicon Details */}
+        {activeTab === 'details' && (
+          <div className="detail-tab-pane">
+            {/* Arabic Definition Box */}
+            {arSenses.length > 0 && (
+              <div className="detail-lang-card detail-arabic-card">
+                <div className="detail-lang-header">
+                  <span className="arabic-badge">العربية (المعنى والترجمة)</span>
                   <button
-                    className="btn-nav"
-                    style={{ padding: '3px 10px', fontSize: '12px', color: 'var(--accent-gold)', borderColor: 'var(--border-gold)' }}
-                    onClick={() => setActiveTab('concordance')}
+                    className="btn-copy-mini"
+                    onClick={() => handleCopy(arSenses.map(s => s.definition).join('; '), 'ar')}
+                    title="نسخ المعنى العربي"
                   >
-                    <span>Explore Parallel Concordance ({concordanceExamples.length})</span>
-                    <ExternalLink size={12} />
+                    {copied === 'ar' ? <Check size={12} color="var(--accent-emerald)" /> : <Copy size={12} />}
+                    <span>{copied === 'ar' ? 'تم النسخ' : 'نسخ'}</span>
                   </button>
                 </div>
-                <div style={{ fontStyle: 'italic', fontSize: '13px', color: 'var(--text-secondary)', background: 'var(--bg-surface)', padding: '8px 12px', borderRadius: '4px', border: '1px solid var(--border-subtle)', lineHeight: 1.5 }}>
-                  <span style={{ fontFamily: 'var(--font-coptic)', color: 'var(--text-coptic)', fontStyle: 'normal', fontSize: '15px', marginRight: '8px' }}>
-                    {concordanceExamples[0].coptic_text}
-                  </span>
-                  <span style={{ color: 'var(--accent-gold)', fontWeight: 600 }}>— {concordanceExamples[0].reference}</span>
-                </div>
-              </div>
-            )}
-
-            {/* Manuscript Citations from Coptic Scriptorium */}
-            {citations.length > 0 && (
-              <div>
-                <div className="detail-section-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <ScrollText size={16} />
-                  <span>Attested Manuscript Citations ({citations.length})</span>
-                </div>
-                <div style={{ background: 'var(--bg-surface-elevated)', padding: '14px 16px', borderRadius: 'var(--radius-sm)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {citations.map((c, idx) => (
-                    <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: idx < citations.length - 1 ? '1px solid var(--border-subtle)' : 'none', paddingBottom: '8px', fontSize: '13px' }}>
-                      <div>
-                        <span style={{ fontWeight: 600, color: 'var(--accent-gold)' }}>{c.urn}</span>
-                        {c.chapter && <span style={{ color: 'var(--text-secondary)', marginLeft: '8px' }}>Chapter {c.chapter}</span>}
-                        {c.verse && <span style={{ color: 'var(--text-secondary)', marginLeft: '4px' }}>Verse {c.verse}</span>}
-                        {c.notes && <span style={{ color: 'var(--text-muted)', fontSize: '12px', marginLeft: '8px', fontStyle: 'italic' }}>({c.notes})</span>}
+                <div className="detail-senses-list">
+                  {arSenses.map((s, idx) => (
+                    <div key={idx} className="detail-sense-row-ar">
+                      <span className="detail-sense-num-ar">{idx + 1}.</span>
+                      <div className="detail-sense-content-ar">
+                        <span className="detail-def-text-ar">{s.definition}</span>
+                        {s.citations && s.citations.length > 0 && (
+                          <div className="detail-citations-chip-ar">
+                            <span>الشواهد: {s.citations.join(' • ')}</span>
+                          </div>
+                        )}
                       </div>
-                      <a
-                        href={`https://data.copticscriptorium.org/urn/${encodeURIComponent(c.urn)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn-nav"
-                        style={{ padding: '3px 8px', fontSize: '11px', display: 'inline-flex' }}
-                      >
-                        <span>View Manuscript</span>
-                        <ExternalLink size={11} />
-                      </a>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Attested Dialectal Forms Table */}
+            {/* English Definitions */}
+            {enSenses.length > 0 && (
+              <div className="detail-lang-card detail-english-card">
+                <div className="detail-lang-header">
+                  <span className="detail-lang-badge en-badge">English Definitions &amp; Senses</span>
+                  <button
+                    className="btn-copy-mini"
+                    onClick={() => handleCopy(enSenses.map(s => s.definition).join('; '), 'en')}
+                    title="Copy English definitions"
+                  >
+                    {copied === 'en' ? <Check size={12} color="var(--accent-emerald)" /> : <Copy size={12} />}
+                    <span>{copied === 'en' ? 'Copied' : 'Copy'}</span>
+                  </button>
+                </div>
+                <div className="detail-senses-list">
+                  {enSenses.map((s, idx) => (
+                    <div key={idx} className="detail-sense-row">
+                      <span className="detail-sense-num">{idx + 1}.</span>
+                      <div className="detail-sense-content">
+                        <span className="detail-def-text">{s.definition}</span>
+                        {s.citations && s.citations.length > 0 && (
+                          <span className="detail-citations-inline">
+                            ({s.citations.join('; ')})
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* German & French Translations Grid */}
+            {(deSenses.length > 0 || frSenses.length > 0) && (
+              <div className="detail-lang-grid-2col">
+                {deSenses.length > 0 && (
+                  <div className="detail-lang-card">
+                    <div className="detail-lang-header">
+                      <span className="detail-lang-badge de-badge">German (Deutsch)</span>
+                    </div>
+                    <div className="detail-senses-list">
+                      {deSenses.map((s, idx) => (
+                        <div key={idx} className="detail-sense-row">
+                          <span className="detail-sense-num">{idx + 1}.</span>
+                          <div className="detail-sense-content">
+                            <span className="detail-def-text">{s.definition}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {frSenses.length > 0 && (
+                  <div className="detail-lang-card">
+                    <div className="detail-lang-header">
+                      <span className="detail-lang-badge fr-badge">French (Français)</span>
+                    </div>
+                    <div className="detail-senses-list">
+                      {frSenses.map((s, idx) => (
+                        <div key={idx} className="detail-sense-row">
+                          <span className="detail-sense-num">{idx + 1}.</span>
+                          <div className="detail-sense-content">
+                            <span className="detail-def-text">{s.definition}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Phonetic Pronunciation Matrix */}
+            <div className="detail-section-block">
+              <div className="detail-section-title">IPA Phonetic Pronunciations</div>
+              <div className="detail-ipa-grid">
+                <div
+                  className={`detail-ipa-card ${activeDialectIpa === 'S' ? 'active' : ''}`}
+                  onClick={() => setActiveDialectIpa('S')}
+                >
+                  <div className="detail-ipa-card-top">
+                    <span className="detail-ipa-label">Sahidic (Late Classical)</span>
+                    <button
+                      className="btn-ipa-play"
+                      onClick={(e) => { e.stopPropagation(); handlePlayAudio('S'); }}
+                      title="Play Sahidic pronunciation"
+                    >
+                      <Volume2 size={15} />
+                    </button>
+                  </div>
+                  <div className="detail-ipa-transcription">{entry.ipa_sahidic || '/—/'}</div>
+                </div>
+
+                <div
+                  className={`detail-ipa-card ${activeDialectIpa === 'B' ? 'active' : ''}`}
+                  onClick={() => setActiveDialectIpa('B')}
+                >
+                  <div className="detail-ipa-card-top">
+                    <span className="detail-ipa-label">Bohairic (Ecclesiastical)</span>
+                    <button
+                      className="btn-ipa-play"
+                      onClick={(e) => { e.stopPropagation(); handlePlayAudio('B'); }}
+                      title="Play Bohairic pronunciation"
+                    >
+                      <Volume2 size={15} />
+                    </button>
+                  </div>
+                  <div className="detail-ipa-transcription">{entry.ipa_bohairic || '/—/'}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Ancient Egyptian & Demotic Root Heritage */}
+            {egyptianRoot && (
+              <div className="detail-section-block">
+                <div className="detail-section-title">Egyptian Ancestry &amp; Hieroglyphic Root</div>
+                <div className="egyptian-heritage-card">
+                  <div className="egyptian-header">
+                    <Sparkles size={18} color="var(--accent-gold)" />
+                    <strong>Egyptian Root: {egyptianRoot.egy_lemma || egyptianRoot.demo_lemma || egyptianRoot.tla}</strong>
+                  </div>
+                  <div className="egyptian-meta-grid">
+                    {egyptianRoot.egy_num && (
+                      <div>
+                        <span className="egyptian-meta-label">TLA Hieroglyphic ID</span>
+                        <span className="hieroglyph-text" style={{ fontSize: '16px', fontWeight: 600 }}>{egyptianRoot.egy_num}</span>
+                      </div>
+                    )}
+                    {egyptianRoot.demo_lemma && (
+                      <div>
+                        <span className="egyptian-meta-label">Demotic Root</span>
+                        <strong>{egyptianRoot.demo_lemma} {egyptianRoot.demo_num ? `(#${egyptianRoot.demo_num})` : ''}</strong>
+                      </div>
+                    )}
+                    {(egyptianRoot.english || egyptianRoot.german) && (
+                      <div>
+                        <span className="egyptian-meta-label">Root Meaning</span>
+                        <span>{egyptianRoot.english || egyptianRoot.german}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Attested Morphological Forms Table */}
             {forms.length > 0 && (
-              <div>
-                <div className="detail-section-title">Attested Dialectal Forms ({forms.length})</div>
-                <div style={{ maxHeight: '240px', overflowY: 'auto', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)' }}>
+              <div className="detail-section-block">
+                <div className="detail-section-title">Attested Morphological Forms ({forms.length})</div>
+                <div className="table-responsive-wrapper">
                   <table className="forms-table">
                     <thead>
                       <tr>
-                        <th>Form</th>
+                        <th>Orthography</th>
                         <th>Dialect</th>
-                        <th>Form ID</th>
-                        <th>Grammar / Notes</th>
-                        <th>Attestation</th>
+                        <th>ID</th>
+                        <th>Grammar</th>
+                        <th>Corpus Link</th>
                       </tr>
                     </thead>
                     <tbody>
                       {forms.map((f, idx) => {
-                        const dialInfo = DIALECT_DESCRIPTIONS[f.dialect];
-                        const annisQuery = `https://tools.copticscriptorium.org/annis/#_q=${encodeURIComponent(`pos="${entry.pos}" & norm="${f.orth}"`)}`;
+                        const annisQuery = `https://corpling.uis.georgetown.edu/coptic-annis/?q=${encodeURIComponent(`norm="${f.orth}"`)}`;
                         return (
                           <tr key={idx}>
-                            <td className="form-coptic">{f.orth}</td>
+                            <td className="coptic-font" style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text-coptic)' }}>
+                              {f.orth}
+                            </td>
                             <td>
-                              {f.dialect ? (
-                                <span
-                                  className="dialect-tag"
-                                  title={dialInfo?.name || f.dialect}
-                                  style={{ borderColor: dialInfo?.color ? `${dialInfo.color}88` : undefined }}
-                                >
-                                  {f.dialect} – {dialInfo?.name || f.dialect}
-                                </span>
-                              ) : (
-                                <span style={{ color: 'var(--text-muted)' }}>&ndash;</span>
-                              )}
+                              <span className="dialect-tag" style={{ borderColor: DIALECT_DESCRIPTIONS[f.dialect || '']?.color ? `${DIALECT_DESCRIPTIONS[f.dialect || '']?.color}88` : undefined }}>
+                                {f.dialect || 'Any'}
+                              </span>
                             </td>
                             <td style={{ fontFamily: 'monospace', fontSize: '11px', color: 'var(--text-muted)' }}>
-                              {f.form_id || '&ndash;'}
+                              {f.form_id || '—'}
                             </td>
                             <td style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                              {f.gram || '&ndash;'}
+                              {f.gram || '—'}
                             </td>
                             <td>
                               <a
@@ -647,9 +620,9 @@ export const EntryDetailModal: React.FC<EntryDetailModalProps> = ({
 
             {/* Greek Loanword & Cross-references */}
             {(entry.etym || entry.grk_id) && (
-              <div>
+              <div className="detail-section-block">
                 <div className="detail-section-title">Etymology &amp; Lexicon Cross-References</div>
-                <div style={{ background: 'var(--bg-surface-elevated)', padding: '14px 16px', borderRadius: 'var(--radius-sm)', fontSize: '13px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div className="detail-etym-box">
                   {entry.etym && (
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
                       <Sparkles size={16} color="var(--accent-gold)" style={{ marginTop: '2px', flexShrink: 0 }} />
@@ -664,7 +637,7 @@ export const EntryDetailModal: React.FC<EntryDetailModalProps> = ({
                   )}
 
                   {entry.grk_id && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '4px', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '6px', flexWrap: 'wrap' }}>
                       <span style={{ fontWeight: 600 }}>Greek Loanword References:</span>
                       <a
                         href={`http://stephanus.tlg.uci.edu/lsj/#eid=${entry.grk_id}`}
@@ -691,7 +664,18 @@ export const EntryDetailModal: React.FC<EntryDetailModalProps> = ({
                 </div>
               </div>
             )}
-          </>
+          </div>
+        )}
+
+        {/* Floating Scroll to Top Button */}
+        {showScrollTop && (
+          <button
+            className="floating-scroll-top-btn"
+            onClick={scrollToTop}
+            aria-label="Scroll to top of entry"
+          >
+            <ArrowUp size={16} />
+          </button>
         )}
       </div>
     </div>

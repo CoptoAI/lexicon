@@ -121,3 +121,72 @@ export function cleanCoptic(text: string): string {
 }
 
 export const stripDiacritics = cleanCoptic;
+
+export const COMMON_COPTIC_GLOSSES: Record<string, { en: string; ar: string; pos: string }> = {
+  // Common Biblical Headwords & Prefixed Forms
+  "ⲡⲛⲟⲩⲧⲉ": { en: "God", ar: "الله", pos: "N" },
+  "ⲫϯ": { en: "God", ar: "الله", pos: "N" },
+  "ⲡⲓⲥⲁϫⲓ": { en: "the Word", ar: "الكلمة", pos: "N" },
+  "ⲡϣⲁϫⲉ": { en: "the Word", ar: "الكلمة", pos: "N" },
+  "ⲥⲁϫⲓ": { en: "word / speak", ar: "كلمة / يتكلم", pos: "N/V" },
+  "ϣⲁϫⲉ": { en: "word / speak", ar: "كلمة / يتكلم", pos: "N/V" },
+  "ⲡⲓⲭⲣⲓⲥⲧⲟⲥ": { en: "the Christ", ar: "المسيح", pos: "N" },
+  "ⲡⲉⲭⲣⲓⲥⲧⲟⲥ": { en: "the Christ", ar: "المسيح", pos: "N" },
+  "ⲓⲏⲥⲟⲩⲥ": { en: "Jesus", ar: "يسوع", pos: "N" },
+  "ⲓⲏⲥ": { en: "Jesus", ar: "يسوع", pos: "N" },
+  "ⲡⲛⲉⲩⲙⲁ": { en: "Spirit", ar: "الروح", pos: "N" },
+  "ⲡⲛⲁ": { en: "Spirit", ar: "الروح", pos: "N" },
+  "ⲡⲓⲡⲛⲉⲩⲙⲁ": { en: "the Spirit", ar: "الروح", pos: "N" },
+  "ⲉⲑⲟⲩⲁⲃ": { en: "Holy", ar: "القدوس", pos: "ADJ" },
+  "ⲉⲧⲟⲩⲁⲁⲃ": { en: "Holy", ar: "القدوس", pos: "ADJ" },
+  "ϧⲉⲛ": { en: "in / with", ar: "في / مع", pos: "PREP" },
+  "ϩⲛ": { en: "in / with", ar: "في / مع", pos: "PREP" },
+  "ⲛⲉ": { en: "was / is", ar: "كان / يكون", pos: "V" },
+  "ⲛⲉϥ": { en: "his / he was", ar: "كان", pos: "V" },
+  "ⲛⲁϥ": { en: "was / to him", ar: "له / كان", pos: "PREP" },
+  "ⲟⲩⲟϩ": { en: "and", ar: "و", pos: "CONJ" },
+  "ⲁⲩⲱ": { en: "and", ar: "و", pos: "CONJ" },
+  "ⲡⲉ": { en: "is / was", ar: "هو", pos: "PTC" },
+  "ⲡ": { en: "the (m)", ar: "ال", pos: "ART" },
+  "ⲧ": { en: "the (f)", ar: "ال", pos: "ART" },
+  "ⲛ": { en: "the (pl) / of", ar: "ال / من", pos: "ART" },
+  "ⲟⲩ": { en: "a / what", ar: "ما / واحد", pos: "ART" },
+  "ϩⲉⲛ": { en: "some", ar: "بعض", pos: "ART" },
+  "ⲁⲅⲁⲡⲏ": { en: "love", ar: "محبة", pos: "N" },
+  "ⲙⲉⲧⲁⲅⲁⲡⲏ": { en: "love", ar: "محبة", pos: "N" },
+  "ⲥⲱⲧⲡ": { en: "choose", ar: "يختار", pos: "V" },
+  "ⲙⲁⲑⲏⲧⲏⲥ": { en: "disciple", ar: "تلميذ", pos: "N" },
+  "ⲛⲓⲙⲁⲑⲏⲧⲏⲥ": { en: "disciples", ar: "التلاميذ", pos: "N" },
+  "ⲛⲙⲁⲑⲏⲧⲏⲥ": { en: "disciples", ar: "التلاميذ", pos: "N" },
+  "ⲁⲡⲟⲥⲧⲟⲗⲟⲥ": { en: "apostle", ar: "رسول", pos: "N" },
+  "ⲛⲓⲁⲡⲟⲥⲧⲟⲗⲟⲥ": { en: "the apostles", ar: "الرسل", pos: "N" },
+  "ⲛⲁⲡⲟⲥⲧⲟⲗⲟⲥ": { en: "the apostles", ar: "الرسل", pos: "N" },
+  "ⲟⲩⲱⲛϩ": { en: "life", ar: "حياة", pos: "N" },
+  "ⲡⲱⲛϩ": { en: "the life", ar: "الحياة", pos: "N" },
+  "ⲡⲓⲱⲛϧ": { en: "the life", ar: "الحياة", pos: "N" },
+  "ⲟⲩⲱⲓⲛⲓ": { en: "light", ar: "نور", pos: "N" },
+  "ⲡⲟⲩⲟⲉⲓⲛ": { en: "the light", ar: "النور", pos: "N" },
+  "ⲡⲓⲟⲩⲱⲓⲛⲓ": { en: "the light", ar: "النور", pos: "N" },
+  "ⲧⲁⲣⲭⲏ": { en: "beginning", ar: "البدء", pos: "N" },
+  "ⲧⲉϩⲟⲩⲉⲓⲧⲉ": { en: "beginning", ar: "البدء", pos: "N" },
+  "ϩⲁⲧⲉⲛ": { en: "with / near", ar: "عند", pos: "PREP" },
+  "ⲛⲛⲁϩⲣⲙ": { en: "with / before", ar: "عند", pos: "PREP" }
+};
+
+export function getCopticTokenGloss(tok: string, isArabic = false): { text: string; pos: string } | null {
+  if (!tok) return null;
+  const clean = tok.replace(/[\.\,\;\:\-\—\(\)\[\]\⸗\·\u0300-\u036f]/g, '').trim().toLowerCase();
+  
+  if (COMMON_COPTIC_GLOSSES[clean]) {
+    const item = COMMON_COPTIC_GLOSSES[clean];
+    return { text: isArabic ? item.ar : item.en, pos: item.pos };
+  }
+  
+  const originalClean = tok.replace(/[\.\,\;\:\-\—\(\)\[\]\⸗\·]/g, '').trim();
+  if (COMMON_COPTIC_GLOSSES[originalClean]) {
+    const item = COMMON_COPTIC_GLOSSES[originalClean];
+    return { text: isArabic ? item.ar : item.en, pos: item.pos };
+  }
+
+  return null;
+}

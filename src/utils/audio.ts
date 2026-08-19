@@ -1,23 +1,60 @@
 // Comprehensive Coptic Phonetic Pronunciation & Audio Engine
-// Combines Browser SpeechSynthesis (with classical Greek/Italian phonetic voices)
-// and Web Audio API formant synthesis for 100% reliable multi-browser voice playback.
+// Supports Jinikim diacritic vocalizations, contextual phonetic rules (Gamma, Chi, Theta, Tav),
+// dual Arabic & Western Text-to-Speech engines, and Web Audio API formant synthesis.
 
 /**
- * Transliterates Coptic Unicode into clean phonetic speech string
+ * Normalizes Coptic text and converts Jinikim diacritics into vocalic syllables
+ */
+function normalizeAndVocalizeCoptic(text: string): string {
+  if (!text) return '';
+
+  let normalized = text.toLowerCase();
+
+  // Combine unicode combining characters
+  // Jinikim combining characters: \u0300 (grave), \u0301 (acute), \u0307 (dot above)
+  // Check consonant + jinikim patterns
+  normalized = normalized.replace(/([ⲛⲙⲣⲗⲃⲕⲥⲧⲡϥϣϩϫϭⲭⲑⲫ])[\u0300\u0301\u0307`̀]/g, 'eh-$1');
+  normalized = normalized.replace(/̀([ⲛⲙⲣⲗⲃⲕⲥⲧⲡϥϣϩϫϭⲭⲑⲫ])/g, 'eh-$1');
+
+  // Strip remaining combining diacritic marks
+  normalized = normalized.replace(/[\u0300-\u036f]/g, '');
+
+  return normalized;
+}
+
+/**
+ * Transliterates Coptic Unicode into clean Western IPA/Phonetic speech string
  */
 export function copticToPhoneticSpeech(copticWord: string, dialect: 'S' | 'B' = 'S'): string {
   if (!copticWord) return '';
 
-  let text = copticWord.toLowerCase();
+  let text = normalizeAndVocalizeCoptic(copticWord);
 
-  // Multi-character substitutions first
+  // 1. Contextual Rules
+  // Gamma (ⲅ): 'ng' before ⲅ, ⲕ, ⲭ, ⲝ; 'g' before ⲉ, ⲏ, ⲓ, ⲩ; 'gh' elsewhere in Bohairic
+  text = text.replace(/ⲅ([ⲅⲕⲭⲝ])/g, 'ng$1');
+  text = text.replace(/ⲅ([ⲉⲏⲓⲩ])/g, 'g$1');
+  text = text.replace(/ⲅ/g, dialect === 'B' ? 'gh' : 'g');
+
+  // Theta (ⲑ): 't' after ⲥ or ϣ, 'th' elsewhere
+  text = text.replace(/([ⲥϣ])ⲑ/g, '$1t');
+  text = text.replace(/ⲑ/g, 'th');
+
+  // Chi (ⲭ): 'sh' before front vowels (ⲉ, ⲏ, ⲓ, ⲩ) in Bohairic, 'kh' elsewhere
+  if (dialect === 'B') {
+    text = text.replace(/ⲭ([ⲉⲏⲓⲩ])/g, 'sh$1');
+  }
+  text = text.replace(/ⲭ/g, 'kh');
+
+  // Post-nasal Tav (ⲛⲧ): 'n-d'
+  text = text.replace(/ⲛⲧ/g, 'nd');
+
+  // Multi-character substitutions
   text = text.replace(/ⲟⲩ/g, 'oo');
   text = text.replace(/ϯ/g, dialect === 'B' ? 'dee' : 'tee');
   text = text.replace(/ⲯ/g, 'ps');
   text = text.replace(/ⲝ/g, 'ks');
-  text = text.replace(/ⲑ/g, 'th');
   text = text.replace(/ⲫ/g, 'f');
-  text = text.replace(/ⲭ/g, 'kh');
   text = text.replace(/ϣ/g, 'sh');
   text = text.replace(/ϥ/g, 'f');
   text = text.replace(/ϧ|ⳉ/g, 'kh');
@@ -25,11 +62,10 @@ export function copticToPhoneticSpeech(copticWord: string, dialect: 'S' | 'B' = 
   text = text.replace(/ϫ/g, dialect === 'B' ? 'j' : 'ch');
   text = text.replace(/ϭ/g, dialect === 'B' ? 'ch' : 'k');
 
-  // Single characters
+  // Single characters map
   const charMap: Record<string, string> = {
     'ⲁ': 'ah',
     'ⲃ': dialect === 'B' ? 'v' : 'b',
-    'ⲅ': 'g',
     'ⲇ': 'd',
     'ⲉ': 'eh',
     'ⲍ': 'z',
@@ -46,7 +82,7 @@ export function copticToPhoneticSpeech(copticWord: string, dialect: 'S' | 'B' = 
     'ⲧ': 't',
     'ⲩ': 'oo',
     'ⲱ': 'oh',
-    '-': '',
+    '-': ' ',
     '⸗': '',
     '=': '',
     '·': ' '
@@ -56,7 +92,70 @@ export function copticToPhoneticSpeech(copticWord: string, dialect: 'S' | 'B' = 
   for (const ch of text) {
     if (charMap[ch] !== undefined) {
       result += charMap[ch];
-    } else if (/[a-z\s]/i.test(ch)) {
+    } else if (/[a-z\s-]/i.test(ch)) {
+      result += ch;
+    }
+  }
+
+  return result.replace(/\s+/g, ' ').trim() || copticWord;
+}
+
+/**
+ * Transliterates Coptic into natural Arabic phonetic string for Arabic TTS engines
+ */
+export function copticToArabicPhoneticSpeech(copticWord: string, dialect: 'S' | 'B' = 'S'): string {
+  if (!copticWord) return '';
+
+  let text = normalizeAndVocalizeCoptic(copticWord);
+
+  text = text.replace(/ⲅ([ⲅⲕⲭⲝ])/g, 'نج$1');
+  text = text.replace(/ⲅ([ⲉⲏⲓⲩ])/g, 'ج$1');
+  text = text.replace(/ⲅ/g, dialect === 'B' ? 'غ' : 'ج');
+
+  text = text.replace(/([ⲥϣ])ⲑ/g, '$1ت');
+  text = text.replace(/ⲑ/g, 'ث');
+  text = text.replace(/ⲛⲧ/g, 'ند');
+
+  text = text.replace(/ⲟⲩ/g, 'و');
+  text = text.replace(/ϯ/g, 'تي');
+  text = text.replace(/ⲯ/g, 'بس');
+  text = text.replace(/ⲝ/g, 'كس');
+  text = text.replace(/ⲫ/g, 'ف');
+  text = text.replace(/ϣ/g, 'ش');
+  text = text.replace(/ϥ/g, 'ف');
+  text = text.replace(/ϧ|ⳉ/g, 'خ');
+  text = text.replace(/ϩ/g, 'ح');
+  text = text.replace(/ϫ/g, dialect === 'B' ? 'ج' : 'تش');
+  text = text.replace(/ϭ/g, dialect === 'B' ? 'تش' : 'ك');
+
+  const arCharMap: Record<string, string> = {
+    'ⲁ': 'ا',
+    'ⲃ': dialect === 'B' ? 'ڤ' : 'ب',
+    'ⲇ': 'د',
+    'ⲉ': 'إ',
+    'ⲍ': 'ز',
+    'ⲏ': 'ي',
+    'ⲓ': 'ي',
+    'ⲕ': 'ك',
+    'ⲗ': 'ل',
+    'ⲙ': 'م',
+    'ⲛ': 'ن',
+    'ⲟ': 'و',
+    'ⲡ': 'ب',
+    'ⲣ': 'ر',
+    'ⲥ': 'س',
+    'ⲧ': 'ت',
+    'ⲩ': 'و',
+    'ⲱ': 'و',
+    'e': 'إ',
+    'h': 'هـ'
+  };
+
+  let result = '';
+  for (const ch of text) {
+    if (arCharMap[ch] !== undefined) {
+      result += arCharMap[ch];
+    } else if (/[\u0600-\u06FF\s]/i.test(ch)) {
       result += ch;
     }
   }
@@ -65,51 +164,61 @@ export function copticToPhoneticSpeech(copticWord: string, dialect: 'S' | 'B' = 
 }
 
 /**
- * Main pronunciation player with speech synthesis & Web Audio fallback
+ * Main pronunciation player with multi-lingual SpeechSynthesis & Web Audio fallback
  */
-export function playSynthesizedCoptic(copticWord: string, dialect: 'S' | 'B' = 'S'): void {
+export function playSynthesizedCoptic(
+  copticWord: string,
+  dialect: 'S' | 'B' = 'S',
+  playbackRate: number = 0.85
+): void {
   if (!copticWord) return;
 
-  const phonetic = copticToPhoneticSpeech(copticWord, dialect);
+  const westernPhonetic = copticToPhoneticSpeech(copticWord, dialect);
+  const arabicPhonetic = copticToArabicPhoneticSpeech(copticWord, dialect);
 
   // 1. Primary: Browser SpeechSynthesis
   if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
     try {
-      window.speechSynthesis.cancel(); // Cancel any ongoing speech
+      window.speechSynthesis.cancel(); // Clear queue
 
-      const utterance = new SpeechSynthesisUtterance(phonetic);
-      utterance.rate = 0.85; // Slightly slower for clear ancient articulation
+      const voices = window.speechSynthesis.getVoices();
+
+      // Find best matching voice
+      const arabicVoice = voices.find(v => v.lang.startsWith('ar'));
+      const westernVoice = voices.find(
+        v => v.lang.startsWith('el') || v.lang.startsWith('it') || v.lang.startsWith('la') || v.lang.startsWith('es')
+      ) || voices.find(v => v.lang.startsWith('en'));
+
+      let speechText = westernPhonetic;
+      let selectedVoice = westernVoice;
+
+      // On devices with Arabic voice selected or default Arabic locale, use Arabic phonetic speech
+      if (arabicVoice && (!westernVoice || navigator.language.startsWith('ar'))) {
+        speechText = arabicPhonetic;
+        selectedVoice = arabicVoice;
+      }
+
+      const utterance = new SpeechSynthesisUtterance(speechText);
+      utterance.rate = playbackRate;
       utterance.pitch = 1.0;
       utterance.volume = 1.0;
 
-      // Select suitable voice (Greek, Italian, or English)
-      const voices = window.speechSynthesis.getVoices();
-      const preferredVoice = voices.find(
-        (v) =>
-          v.lang.startsWith('el') || // Greek (closest phonetics to Coptic)
-          v.lang.startsWith('it') || // Italian (pure vowels)
-          v.lang.startsWith('la') || // Latin
-          v.lang.startsWith('es')    // Spanish
-      ) || voices.find((v) => v.lang.startsWith('en'));
-
-      if (preferredVoice) {
-        utterance.voice = preferredVoice;
+      if (selectedVoice) {
+        utterance.voice = selectedVoice;
       }
 
       utterance.onerror = () => {
-        // Fallback to Web Audio oscillator if SpeechSynthesis fails
         playWebAudioFallback(copticWord, dialect);
       };
 
       window.speechSynthesis.speak(utterance);
 
-      // Chromium bugfix: resume if paused
       if (window.speechSynthesis.paused) {
         window.speechSynthesis.resume();
       }
       return;
     } catch (e) {
-      console.warn('SpeechSynthesis error, falling back to Web Audio:', e);
+      console.warn('SpeechSynthesis failed, using Web Audio fallback:', e);
     }
   }
 
