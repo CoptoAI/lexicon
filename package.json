@@ -20,6 +20,7 @@
     "upstream:deploy": "python scripts/sync_upstream.py --sync --branch upstream-sync && npm run data:deploy"
   },
   "dependencies": {
+    "@microsoft/clarity": "^1.0.2",
     "hono": "^4.6.14",
     "lucide-react": "^0.468.0",
     "react": "^18.3.1",
